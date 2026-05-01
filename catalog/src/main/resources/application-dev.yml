@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: catalog-service
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: 5672
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
   datasource:
     url: jdbc:postgresql://localhost:5432/donatech
     username: donatech

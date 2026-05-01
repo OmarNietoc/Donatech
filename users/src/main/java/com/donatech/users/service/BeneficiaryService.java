@@ -1,6 +1,8 @@
 package com.donatech.users.service;
 
 import com.donatech.users.dto.BeneficiaryDto;
+import com.donatech.users.event.BeneficiaryEventPublisher;
+import com.donatech.users.event.BeneficiaryVerifiedEvent;
 import com.donatech.users.exception.ConflictException;
 import com.donatech.users.exception.ResourceNotFoundException;
 import com.donatech.users.model.Beneficiary;
@@ -21,6 +23,7 @@ public class BeneficiaryService {
 
     private final BeneficiaryRepository beneficiaryRepository;
     private final UserRepository userRepository;
+    private final BeneficiaryEventPublisher beneficiaryEventPublisher;
 
     public List<Beneficiary> getAll() {
         return beneficiaryRepository.findAll();
@@ -83,7 +86,15 @@ public class BeneficiaryService {
         if (nuevoEstado == EstadoVerificacion.RECHAZADO) {
             b.setMotivoRechazo(motivoRechazo);
         }
-        return beneficiaryRepository.save(b);
+        Beneficiary saved = beneficiaryRepository.save(b);
+
+        if (nuevoEstado == EstadoVerificacion.VERIFICADO) {
+            beneficiaryEventPublisher.publishBeneficiaryVerified(new BeneficiaryVerifiedEvent(
+                    saved.getId(), saved.getUser().getId(), saved.getRut(), saved.getFechaVerificacion()
+            ));
+        }
+
+        return saved;
     }
 
     public void delete(Long id) {

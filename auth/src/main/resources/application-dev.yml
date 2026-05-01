@@ -4,6 +4,23 @@ server:
 spring:
   application:
     name: auth-service
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      users-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 15s
+        permittedNumberOfCallsInHalfOpenState: 3
+  timelimiter:
+    instances:
+      users-service:
+        timeoutDuration: 3s
 
 donatech:
   app:

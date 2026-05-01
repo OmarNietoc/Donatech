@@ -9,6 +9,9 @@ import com.donatech.order.dto.AddItemToOrderRequest;
 import com.donatech.order.dto.OrderDto;
 import com.donatech.order.dto.OrderItemRequestDto;
 import com.donatech.order.dto.ProductResponseDto;
+import com.donatech.order.event.DonationConfirmedEvent;
+import com.donatech.order.event.DonationEventPublisher;
+import com.donatech.order.event.DonationItemEvent;
 import com.donatech.order.exception.ResourceNotFoundException;
 import com.donatech.order.model.Coupon;
 import com.donatech.order.model.Order;
@@ -38,6 +41,7 @@ public class OrderService {
     private final CouponService couponService;
     private final UserValidatorService userValidatorService;
     private final ProductClient productClient;
+    private final DonationEventPublisher donationEventPublisher;
 
     public ResponseEntity<OrderResponse> getOrderDtoById(Long id) {
         Order order = getOrderById(id);
@@ -196,6 +200,16 @@ public class OrderService {
         Order order = getOrderById(id);
         order.setEstado(status);
         orderRepository.save(order);
+
+        if (status == DonationStatus.CONFIRMED) {
+            List<DonationItemEvent> items = order.getItems().stream()
+                    .map(item -> new DonationItemEvent(item.getProductId(), item.getQuantity()))
+                    .toList();
+            donationEventPublisher.publishDonationConfirmed(
+                    new DonationConfirmedEvent(order.getId(), order.getUserEmail(), items, LocalDateTime.now())
+            );
+        }
+
         return ResponseEntity.ok(new MessageResponse("Estado de la orden actualizado exitosamente: " + status));
     }
 

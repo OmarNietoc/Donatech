@@ -126,6 +126,8 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   catalog-service:
     build:
@@ -144,6 +146,8 @@ services:
       postgres-catalog:
         condition: service_healthy
       discovery-server:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   order-service:
@@ -164,6 +168,8 @@ services:
         condition: service_healthy
       discovery-server:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   supports-service:
     build:
@@ -182,6 +188,8 @@ services:
       postgres-supports:
         condition: service_healthy
       discovery-server:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
 
   # ─────────────────────────────────────────

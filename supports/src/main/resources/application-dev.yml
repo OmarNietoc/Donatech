@@ -4,6 +4,15 @@ server:
 spring:
   application:
     name: supports-service
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: 5672
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
   datasource:
     url: jdbc:postgresql://localhost:5432/donatech
     username: donatech
@@ -31,3 +40,16 @@ springdoc:
     urls:
       - name: Supports API
         url: /supports/v3/api-docs
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      users-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 15s
+        permittedNumberOfCallsInHalfOpenState: 3
+  timelimiter:
+    instances:
+      users-service:
+        timeoutDuration: 3s

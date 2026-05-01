@@ -1,0 +1,13 @@
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.donatech: INFO
+    org.springframework.amqp: WARN

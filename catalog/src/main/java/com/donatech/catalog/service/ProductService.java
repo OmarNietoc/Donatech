@@ -17,6 +17,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -89,6 +90,14 @@ public class ProductService {
 
         productRepository.save(product);
         return ResponseEntity.ok(new MessageResponse("Producto actualizado correctamente."));
+    }
+
+    @Transactional
+    public Product deductStock(String productId, Integer quantity) {
+        Product product = getProductById(productId);
+        int newStock = Math.max(0, product.getStock() - quantity);
+        product.setStock(newStock);
+        return productRepository.save(product);
     }
 
     public List<Product> getLowStockProducts() {

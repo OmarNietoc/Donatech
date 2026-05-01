@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.Map;
 
-@FeignClient(name = "users-service", path = "/api/users")
+@FeignClient(name = "users-service", path = "/api/users", fallback = UserServiceClientFallback.class)
 public interface UserServiceClient {
 
     @GetMapping("/internal/credentials")

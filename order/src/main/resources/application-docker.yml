@@ -4,6 +4,15 @@ server:
 spring:
   application:
     name: order-service
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: 5672
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+  cloud:
+    openfeign:
+      circuitbreaker:
+        enabled: true
   datasource:
     url: ${DB_URL}
     username: ${POSTGRES_USER:donatech}
@@ -29,3 +38,23 @@ springdoc:
     urls:
       - name: Order API
         url: /order/v3/api-docs
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      users-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 15s
+        permittedNumberOfCallsInHalfOpenState: 3
+      catalog-service:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 15s
+        permittedNumberOfCallsInHalfOpenState: 3
+  timelimiter:
+    instances:
+      users-service:
+        timeoutDuration: 3s
+      catalog-service:
+        timeoutDuration: 3s

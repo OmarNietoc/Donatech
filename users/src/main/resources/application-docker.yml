@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: users-service
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: 5672
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
   datasource:
     url: ${DB_URL}
     username: ${POSTGRES_USER:donatech}
