@@ -1,0 +1,33 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: supports-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/donatech
+    username: donatech
+    password: password
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  swagger-ui:
+    disable-swagger-default-url: true
+    url: /supports/v3/api-docs
+    config-url: /supports/v3/api-docs
+    urls:
+      - name: Supports API
+        url: /supports/v3/api-docs

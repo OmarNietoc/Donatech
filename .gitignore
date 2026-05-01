@@ -1,0 +1,70 @@
+# === Java / Maven ===
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven Wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# === IDE ===
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+.vscode/
+
+# === OS ===
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# === Logs ===
+*.log
+logs/
+
+# === Env & Secrets ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# === Docker data ===
+docker-data/
+pgdata/
+
+# === Node.js ===
+node_modules/
+dist/
+
+# === Spring Boot ===
+HELP.md
+
+# === Test reports ===
+**/surefire-reports/
+**/failsafe-reports/
+jacoco.exec
+.claude/
+.claudeignore
+CLAUDE.md
