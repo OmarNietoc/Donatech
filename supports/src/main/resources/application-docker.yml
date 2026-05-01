@@ -1,0 +1,31 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: supports-service
+  datasource:
+    url: ${DB_URL}
+    username: ${POSTGRES_USER:donatech}
+    password: ${POSTGRES_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  swagger-ui:
+    disable-swagger-default-url: true
+    url: /supports/v3/api-docs
+    config-url: /supports/v3/api-docs
+    urls:
+      - name: Supports API
+        url: /supports/v3/api-docs

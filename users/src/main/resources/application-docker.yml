@@ -1,0 +1,41 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: users-service
+  datasource:
+    url: ${DB_URL}
+    username: ${POSTGRES_USER:donatech}
+    password: ${POSTGRES_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    show-sql: true
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+
+donatech:
+  app:
+    jwtSecret: ${JWT_SECRET:donatechSecretKey12345678901234567890123456789012}
+    jwtExpirationMs: ${JWT_EXPIRATION_MS:86400000}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-server:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+springdoc:
+  swagger-ui:
+    disable-swagger-default-url: true
+    url: /users/v3/api-docs
+    config-url: /users/v3/api-docs
+    urls:
+      - name: Users API
+        url: /users/v3/api-docs

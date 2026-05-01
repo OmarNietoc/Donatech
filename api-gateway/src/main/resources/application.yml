@@ -1,0 +1,106 @@
+server:
+  port: 8080
+
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: false
+      routes:
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
+
+        - id: catalog-service
+          uri: lb://catalog-service
+          predicates:
+            - Path=/api/products/**, /api/categories/**, /api/units/**, /api/kits/**, /api/necesidades/**
+          filters:
+            - AuthenticationFilter
+
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/api/orders/**, /api/donations/**, /api/tracking/**
+          filters:
+            - AuthenticationFilter
+
+        - id: users-service
+          uri: lb://users-service
+          predicates:
+            - Path=/api/users/**, /api/regions/**, /api/comunas/**, /api/beneficiaries/**, /api/zonas-catastrofe/**
+          filters:
+            - AuthenticationFilter
+
+        - id: supports-service
+          uri: lb://supports-service
+          predicates:
+            - Path=/api/supports/**
+          filters:
+            - AuthenticationFilter
+
+        - id: catalog-swagger
+          uri: lb://catalog-service
+          predicates:
+            - Path=/catalog/swagger-ui/**, /catalog/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+
+        - id: users-swagger
+          uri: lb://users-service
+          predicates:
+            - Path=/users/swagger-ui/**, /users/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+
+        - id: order-swagger
+          uri: lb://order-service
+          predicates:
+            - Path=/order/swagger-ui/**, /order/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+
+        - id: supports-swagger
+          uri: lb://supports-service
+          predicates:
+            - Path=/supports/swagger-ui/**, /supports/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+
+        - id: auth-swagger
+          uri: lb://auth-service
+          predicates:
+            - Path=/auth/swagger-ui/**, /auth/v3/api-docs/**
+          filters:
+            - StripPrefix=1
+
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:5173"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+donatech:
+  app:
+    jwtSecret: ${JWT_SECRET:donatechSecretKey12345678901234567890123456789012}
