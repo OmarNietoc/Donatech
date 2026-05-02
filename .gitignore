@@ -66,5 +66,6 @@ HELP.md
 **/failsafe-reports/
 jacoco.exec
 .claude/
+actualizacion.md
 .claudeignore
 CLAUDE.md
