@@ -44,7 +44,8 @@ public class RouteController {
                 request.getCompanyId(),
                 request.getCarrierId(),
                 request.getOriginAddress(),
-                request.getShipmentIds()
+                request.getShipmentIds(),
+                request.isOptimizeRoute()
         );
 
         MessageResponse<RouteDTO> response = MessageResponse.<RouteDTO>builder()

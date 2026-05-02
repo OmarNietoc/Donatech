@@ -4,6 +4,10 @@ management:
       exposure:
         include: health,info
 
+routing:
+  osrm-base-url: http://router.project-osrm.org
+  nominatim-base-url: https://nominatim.openstreetmap.org
+
 resilience4j:
   circuitbreaker:
     instances:

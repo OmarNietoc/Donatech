@@ -16,5 +16,7 @@ public class RouteCreationRequestDTO {
     private String carrierId;
     private String originAddress;
     private List<String> shipmentIds;
+    @Builder.Default
+    private boolean optimizeRoute = true;
 }
 

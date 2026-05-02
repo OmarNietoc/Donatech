@@ -28,7 +28,7 @@ public class RouteService {
     private final Map<String, ShippingCalculationStrategy> calculationStrategies;
 
     @Transactional
-    public Route createRoute(String companyId, String carrierId, String originAddress, List<String> shipmentIds) {
+    public Route createRoute(String companyId, String carrierId, String originAddress, List<String> shipmentIds, boolean optimizeRoute) {
         log.info("Creando ruta para la compañía: {}", companyId);
 
         Route route = Route.builder()
@@ -67,8 +67,10 @@ public class RouteService {
             log.info("Plan de ruta comercial generado: {}", routePlan);
         }
 
-        // Llamar a la API externa para el path geográfico, protegido con CircuitBreaker
-        String pathJson = routingApiService.fetchOptimizedPath(route);
+        // Path geográfico: OSRM (optimizeRoute=true) o manual sin llamada externa
+        String pathJson = optimizeRoute
+                ? routingApiService.fetchOptimizedPath(route, shipments)
+                : buildManualRouteJson(shipments);
         route.setOptimizedPathJson(pathJson);
 
         return routeRepository.save(route);
@@ -123,6 +125,19 @@ public class RouteService {
         // Soft Delete de la ruta
         route.setStatus(RouteStatus.CANCELLED);
         routeRepository.save(route);
+    }
+
+    private String buildManualRouteJson(List<Shipment> shipments) {
+        try {
+            Map<String, Object> result = new java.util.LinkedHashMap<>();
+            result.put("source", "manual");
+            result.put("total_stops", shipments.size());
+            List<String> order = shipments.stream().map(Shipment::getId).toList();
+            result.put("optimized_order", order);
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(result);
+        } catch (Exception e) {
+            return "{\"source\":\"manual\"}";
+        }
     }
 
     private String determineStrategyKey(String carrierId) {
