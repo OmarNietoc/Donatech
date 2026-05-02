@@ -43,8 +43,9 @@ public class DonationController {
     @Operation(summary = "Actualizar estado de donación")
     @PatchMapping("/{id}/status")
     public ResponseEntity<MessageResponse> updateStatus(@PathVariable Long id,
-                                                        @RequestParam DonationStatus status) {
-        return orderService.updateDonationStatusById(id, status);
+                                                        @RequestParam DonationStatus status,
+                                                        @RequestParam(required = false) Long changedById) {
+        return orderService.updateDonationStatusById(id, status, changedById);
     }
 
     @Operation(summary = "Donaciones por donante (email)")

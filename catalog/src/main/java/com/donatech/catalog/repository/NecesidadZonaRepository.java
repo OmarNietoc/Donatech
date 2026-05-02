@@ -9,5 +9,5 @@ import java.util.List;
 @Repository
 public interface NecesidadZonaRepository extends JpaRepository<NecesidadZona, Long> {
     List<NecesidadZona> findByComunaId(Long comunaId);
-    List<NecesidadZona> findByProductoId(String productoId);
+    List<NecesidadZona> findByProducto_Id(String productoId);
 }

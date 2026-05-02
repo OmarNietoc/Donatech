@@ -158,6 +158,44 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  notification-service:
+    build:
+      context: ./notification
+      dockerfile: Dockerfile
+    container_name: donatech-notification
+    image: donatech/notification-service:latest
+    env_file:
+      - .env
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  shipping-service:
+    build:
+      context: ./shipping
+      dockerfile: Dockerfile
+    container_name: donatech-shipping
+    image: donatech/shipping-service:latest
+    env_file:
+      - .env
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
   # ─────────────────────────────────────────
   # API Gateway
   # ─────────────────────────────────────────

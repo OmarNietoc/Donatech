@@ -2,7 +2,6 @@ package com.donatech.catalog.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,9 +20,10 @@ public class NecesidadZona {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank
-    @Column(name = "product_id", nullable = false)
-    private String productoId;
+    @NotNull(message = "El producto es obligatorio")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product producto;
 
     @NotNull
     @Column(name = "comuna_id", nullable = false)

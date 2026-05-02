@@ -6,7 +6,9 @@ import com.donatech.catalog.dto.KitItemDto;
 import com.donatech.catalog.exception.ResourceNotFoundException;
 import com.donatech.catalog.model.Kit;
 import com.donatech.catalog.model.KitItem;
+import com.donatech.catalog.model.Product;
 import com.donatech.catalog.repository.KitRepository;
+import com.donatech.catalog.repository.ProductRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,7 @@ import java.util.List;
 public class KitService {
 
     private final KitRepository kitRepository;
+    private final ProductRepository productRepository;
 
     public List<Kit> getAll() {
         return kitRepository.findAll();
@@ -70,9 +73,11 @@ public class KitService {
     private void addItemsToKit(Kit kit, List<KitItemDto> itemDtos) {
         if (itemDtos == null) return;
         for (KitItemDto itemDto : itemDtos) {
+            Product product = productRepository.findById(itemDto.getProductId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + itemDto.getProductId()));
             KitItem item = KitItem.builder()
                     .kit(kit)
-                    .productId(itemDto.getProductId())
+                    .product(product)
                     .cantidadRequerida(itemDto.getCantidadRequerida())
                     .build();
             kit.getItems().add(item);

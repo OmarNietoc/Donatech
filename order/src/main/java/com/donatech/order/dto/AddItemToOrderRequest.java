@@ -12,6 +12,8 @@ public class AddItemToOrderRequest {
     @Email(message = "El email del usuario debe ser válido")
     private String userEmail;
 
+    private Long campaignId;
+
     @Valid
     private OrderItemRequestDto item;
 }

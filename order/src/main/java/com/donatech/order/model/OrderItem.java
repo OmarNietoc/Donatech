@@ -2,15 +2,12 @@ package com.donatech.order.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-
 
 @Entity
 @Table(name = "order_items")
@@ -29,20 +26,16 @@ public class OrderItem {
     @JsonBackReference
     private Order order;
 
-    @NotBlank(message = "El identificador del producto es obligatorio")
-    @Column(name = "product_id", nullable = false, length = 50)
-    private String productId;
+    @NotNull(message = "El ID del kit es obligatorio")
+    @Column(name = "kit_id", nullable = false)
+    private Long kitId;
 
-    // Datos cacheados al añadir al carrito
-    private String productName;
-    @Column(name = "product_description", length = 1000)
-    private String productDescription;
+    @Column(name = "kit_name_snapshot", length = 120)
+    private String kitNameSnapshot;
+
     @NotNull(message = "El precio unitario es obligatorio")
+    @Column(name = "unit_price")
     private Integer unitPrice;
-
-    @Lob
-    @Column(name = "product_image")
-    private String productImage;
 
     @NotNull(message = "La cantidad no puede ser nula")
     @Positive(message = "La cantidad debe ser mayor que 0")
@@ -51,10 +44,4 @@ public class OrderItem {
     @NotNull(message = "El subtotal es obligatorio")
     @Column(name = "subtotal")
     private Integer subtotal;
-
-    @Column(name = "kit_id")
-    private Long kitId;
-
-    @Column(name = "kit_name", length = 120)
-    private String kitName;
 }

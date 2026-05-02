@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: 'postgres:15-alpine'
+    container_name: pg-shipping
+    environment:
+      - 'POSTGRES_DB=${DB_NAME:-shipping_db}'
+      - 'POSTGRES_PASSWORD=${DB_PASSWORD:-password}'
+      - 'POSTGRES_USER=${DB_USERNAME:-postgres}'
+    ports:
+      - '5432:5432'
+    volumes:
+      - shipping-db-data:/var/lib/postgresql/data
+
+  ms-shipping:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ms-shipping
+    ports:
+      - '8084:8084'
+    environment:
+      - DB_URL=jdbc:postgresql://postgres:5432/shipping_db
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=password
+      - SERVER_PORT=8084
+      - EUREKA_URI=http://host.docker.internal:8761/eureka/
+    depends_on:
+      - postgres
+
+volumes:
+  shipping-db-data:

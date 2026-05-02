@@ -3,6 +3,10 @@ package com.donatech.supports.service;
 import com.donatech.supports.controller.response.MessageResponse;
 import com.donatech.supports.dto.ResponderDTO;
 import com.donatech.supports.dto.SoporteRequestDTO;
+import com.donatech.supports.event.CampaignResultEvent;
+import com.donatech.supports.event.CampaignResultPublisher;
+import com.donatech.supports.event.TransferResultEvent;
+import com.donatech.supports.event.TransferResultPublisher;
 import com.donatech.supports.exception.ResourceNotFoundException;
 import com.donatech.supports.model.EstadoSoporte;
 import com.donatech.supports.model.Soporte;
@@ -22,6 +26,8 @@ import java.util.List;
 public class SoporteService {
 
     private final SoporteRepository soporteRepository;
+    private final CampaignResultPublisher campaignResultPublisher;
+    private final TransferResultPublisher transferResultPublisher;
 
     public List<Soporte> obtenerTodas() {
         return soporteRepository.findAll();
@@ -35,10 +41,12 @@ public class SoporteService {
     public ResponseEntity<Soporte> crear(@Valid SoporteRequestDTO dto) {
         Soporte soporte = Soporte.builder()
                 .descripcion(dto.getDescripcion())
+                .titulo(dto.getTitulo())
                 .usuarioId(dto.getUsuarioId())
                 .prioridad(dto.getPrioridad())
                 .tipo(dto.getTipo())
                 .donationId(dto.getDonationId())
+                .campaignId(dto.getCampaignId())
                 .estado(EstadoSoporte.PENDIENTE)
                 .fechaCreacion(LocalDateTime.now())
                 .build();
@@ -93,5 +101,27 @@ public class SoporteService {
 
     public List<Soporte> getByDonation(Long donationId) {
         return soporteRepository.findByDonationId(donationId);
+    }
+
+    public ResponseEntity<MessageResponse> validateCampaign(Long ticketId, boolean approved, String motivo) {
+        Soporte soporte = obtenerSoportePorId(ticketId);
+        soporte.setEstado(approved ? EstadoSoporte.RESUELTO : EstadoSoporte.CERRADO);
+        soporte.setRespuesta(motivo);
+        soporte.setFechaResolucion(LocalDateTime.now());
+        soporteRepository.save(soporte);
+
+        campaignResultPublisher.publish(new CampaignResultEvent(soporte.getCampaignId(), approved, motivo));
+        return ResponseEntity.ok(new MessageResponse("Campaña " + (approved ? "aprobada" : "rechazada") + " correctamente."));
+    }
+
+    public ResponseEntity<MessageResponse> validateTransfer(Long ticketId, boolean approved, String motivo) {
+        Soporte soporte = obtenerSoportePorId(ticketId);
+        soporte.setEstado(approved ? EstadoSoporte.RESUELTO : EstadoSoporte.CERRADO);
+        soporte.setRespuesta(motivo);
+        soporte.setFechaResolucion(LocalDateTime.now());
+        soporteRepository.save(soporte);
+
+        transferResultPublisher.publish(new TransferResultEvent(soporte.getDonationId(), approved, motivo));
+        return ResponseEntity.ok(new MessageResponse("Transferencia " + (approved ? "aprobada" : "rechazada") + " correctamente."));
     }
 }

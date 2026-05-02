@@ -32,13 +32,13 @@ public class RabbitConfig {
     }
 
     @Bean
-    public Queue trackingUpdateQueue() {
-        return new Queue("order.tracking.update", true);
+    public Queue transferValidatedQueue() {
+        return new Queue("order.transfer.validated", true);
     }
 
     @Bean
-    public Binding trackingUpdateBinding(Queue trackingUpdateQueue, TopicExchange donatechExchange) {
-        return BindingBuilder.bind(trackingUpdateQueue).to(donatechExchange).with("qr.scanned");
+    public Binding transferValidatedBinding(Queue transferValidatedQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(transferValidatedQueue).to(donatechExchange).with("transfer.validated");
     }
 
     @Bean

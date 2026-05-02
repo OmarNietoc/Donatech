@@ -1,9 +1,11 @@
 package com.donatech.order.controller;
 
+import com.donatech.order.controller.response.DashboardResponse;
 import com.donatech.order.controller.response.MessageResponse;
 import com.donatech.order.controller.response.OrderResponse;
 import com.donatech.order.dto.OrderDto;
 import com.donatech.order.model.DonationStatus;
+import com.donatech.order.model.TrackingHistory;
 import com.donatech.order.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,7 +25,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.donatech.order.dto.AddItemToOrderRequest;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -114,8 +118,21 @@ public class OrderController {
             @ApiResponse(responseCode = "404", description = "Orden no encontrada")
     })
     @PatchMapping("/{id}/status")
-    public ResponseEntity<MessageResponse> updateDonationStatus(@PathVariable Long id, @RequestParam DonationStatus status) {
-        return orderService.updateDonationStatusById(id, status);
+    public ResponseEntity<MessageResponse> updateDonationStatus(
+            @PathVariable Long id,
+            @RequestParam DonationStatus status,
+            @RequestParam(required = false) Long changedById) {
+        return orderService.updateDonationStatusById(id, status, changedById);
+    }
+
+    @Operation(summary = "Historial de cambios de estado de una orden")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Historial obtenido correctamente"),
+            @ApiResponse(responseCode = "404", description = "Orden no encontrada")
+    })
+    @GetMapping("/{id}/history")
+    public ResponseEntity<List<TrackingHistory>> getOrderHistory(@PathVariable Long id) {
+        return orderService.getOrderHistory(id);
     }
 
     @Operation(summary = "Eliminar una orden", description = "Elimina una orden por su ID.")
@@ -126,5 +143,44 @@ public class OrderController {
     @DeleteMapping("/{id}")
     public ResponseEntity<MessageResponse> deleteOrder(@PathVariable Long id) {
         return orderService.deleteOrder(id);
+    }
+
+    @Operation(summary = "Subir comprobante de transferencia",
+            description = "Adjunta el comprobante bancario y cambia el estado a INGRESADA.")
+    @ApiResponse(responseCode = "200", description = "Comprobante recibido")
+    @PostMapping(value = "/{id}/transfer-proof", consumes = "multipart/form-data")
+    public ResponseEntity<MessageResponse> uploadTransferProof(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) throws IOException {
+        return orderService.uploadTransferProof(id, file.getBytes());
+    }
+
+    @Operation(summary = "Subir evidencia de entrega",
+            description = "Transportista sube foto y documento firmado. Cambia estado a PENDIENTE_CONFIRMACION.")
+    @ApiResponse(responseCode = "200", description = "Evidencia recibida")
+    @PostMapping(value = "/{id}/delivery-proof", consumes = "multipart/form-data")
+    public ResponseEntity<MessageResponse> uploadDeliveryProof(
+            @PathVariable Long id,
+            @RequestParam(value = "photo", required = false) MultipartFile photo,
+            @RequestParam(value = "document", required = false) MultipartFile document) throws IOException {
+        byte[] photoBytes = (photo != null) ? photo.getBytes() : null;
+        byte[] docBytes = (document != null) ? document.getBytes() : null;
+        return orderService.uploadDeliveryProof(id, photoBytes, docBytes);
+    }
+
+    @Operation(summary = "Confirmar entrega",
+            description = "Admin confirma que la foto coincide. Cambia estado a ENTREGADA.")
+    @ApiResponse(responseCode = "200", description = "Entrega confirmada")
+    @PatchMapping("/{id}/confirm-delivery")
+    public ResponseEntity<MessageResponse> confirmDelivery(
+            @PathVariable Long id,
+            @RequestParam Long confirmedById) {
+        return orderService.confirmDelivery(id, confirmedById);
+    }
+
+    @Operation(summary = "Dashboard — resumen de órdenes por estado y zona")
+    @GetMapping("/dashboard/summary")
+    public ResponseEntity<DashboardResponse> getDashboard() {
+        return orderService.getDashboard();
     }
 }

@@ -105,6 +105,26 @@ public class SoporteController {
         return soporteService.responder(id, dto);
     }
 
+    @Operation(summary = "Validar campaña",
+            description = "Admin/voluntario aprueba o rechaza una campaña. Publica evento a catalog ms.")
+    @PatchMapping("/{id}/validate-campaign")
+    public ResponseEntity<MessageResponse> validateCampaign(
+            @PathVariable Long id,
+            @RequestParam boolean approved,
+            @RequestParam(required = false, defaultValue = "") String motivo) {
+        return soporteService.validateCampaign(id, approved, motivo);
+    }
+
+    @Operation(summary = "Validar transferencia bancaria",
+            description = "Admin/voluntario aprueba o rechaza comprobante. Publica evento a order ms.")
+    @PatchMapping("/{id}/validate-transfer")
+    public ResponseEntity<MessageResponse> validateTransfer(
+            @PathVariable Long id,
+            @RequestParam boolean approved,
+            @RequestParam(required = false, defaultValue = "") String motivo) {
+        return soporteService.validateTransfer(id, approved, motivo);
+    }
+
     @Operation(summary = "Eliminar ticket de soporte")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Ticket eliminado"),

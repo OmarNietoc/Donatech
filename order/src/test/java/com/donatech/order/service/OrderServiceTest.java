@@ -115,7 +115,7 @@ class OrderServiceTest {
         Order existingOrder = Order.builder()
                 .id(orderId)
                 .userEmail("stored@shop.com")
-                .estado(DonationStatus.CONFIRMED)
+                .estado(DonationStatus.EN_PREPARACION)
                 .coupon(existingCoupon)
                 .finalPrice(1000)       // 1200 - 200 de descuento
                 .discountApplied(200)
@@ -141,7 +141,7 @@ class OrderServiceTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(DonationStatus.CONFIRMED, response.getBody().getEstado());
+        assertEquals(DonationStatus.EN_PREPARACION, response.getBody().getEstado());
         assertEquals("KEEP", response.getBody().getCoupon().getCode());
         assertEquals(200, response.getBody().getDiscountApplied());
         verify(couponService, never()).getCouponByCode(anyString());

@@ -19,9 +19,10 @@ public class OrderDto {
     @Email(message = "El email del usuario debe ser válido")
     private String userEmail;
 
-    @NotEmpty(message = "La orden debe contener al menos un producto")
+    private Long campaignId;
+
+    @NotEmpty(message = "La orden debe contener al menos un kit")
     private List<@Valid OrderItemRequestDto> items;
 
-    // Código de cupón opcional
     private String couponCode;
 }

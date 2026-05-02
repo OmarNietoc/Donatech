@@ -11,7 +11,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +21,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Order{
+public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -63,18 +62,35 @@ public class Order{
     @Column(name = "zona_catastrofe_id")
     private Long zonaCatastrofeId;
 
-    @Column(name = "qr_code", length = 500)
-    private String qrCode;
+    @Column(name = "campaign_id")
+    private Long campaignId;
 
-    @Column(name = "qr_generated_at")
-    private LocalDateTime qrGeneratedAt;
+    @Lob
+    @Column(name = "transfer_proof")
+    private byte[] transferProof;
 
-    @Column(name = "tracking_notes", length = 1000)
-    private String trackingNotes;
+    @Column(name = "transfer_proof_uploaded_at")
+    private LocalDateTime transferProofUploadedAt;
+
+    @Lob
+    @Column(name = "delivery_photo")
+    private byte[] deliveryPhoto;
+
+    @Lob
+    @Column(name = "delivery_document")
+    private byte[] deliveryDocument;
+
+    @Column(name = "delivery_confirmed_at")
+    private LocalDateTime deliveryConfirmedAt;
+
+    @Column(name = "delivery_confirmed_by")
+    private Long deliveryConfirmedBy;
+
+    @Column(name = "rejection_reason", length = 1000)
+    private String rejectionReason;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
-
 }

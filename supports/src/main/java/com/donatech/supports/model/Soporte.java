@@ -43,11 +43,17 @@ public class Soporte {
 
     @NotNull(message = "El tipo es obligatorio")
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 15)
+    @Column(nullable = false, length = 30)
     private TipoSoporte tipo;
+
+    @Column(length = 255)
+    private String titulo;
 
     @Column(name = "donation_id")
     private Long donationId;
+
+    @Column(name = "campaign_id")
+    private Long campaignId;
 
     @Column(name = "asignado_a")
     private Long asignadoA;

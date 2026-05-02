@@ -1,23 +1,27 @@
 package com.donatech.order.service;
 
-import com.donatech.order.client.ProductClient;
+import com.donatech.order.client.KitClient;
 import com.donatech.order.controller.response.CouponResponse;
+import com.donatech.order.controller.response.DashboardResponse;
 import com.donatech.order.controller.response.MessageResponse;
 import com.donatech.order.controller.response.OrderResponse;
 import com.donatech.order.controller.response.UserResponseDto;
 import com.donatech.order.dto.AddItemToOrderRequest;
+import com.donatech.order.dto.KitResponseDto;
 import com.donatech.order.dto.OrderDto;
 import com.donatech.order.dto.OrderItemRequestDto;
-import com.donatech.order.dto.ProductResponseDto;
 import com.donatech.order.event.DonationConfirmedEvent;
 import com.donatech.order.event.DonationEventPublisher;
 import com.donatech.order.event.DonationItemEvent;
+import com.donatech.order.event.TransferSubmittedEvent;
 import com.donatech.order.exception.ResourceNotFoundException;
 import com.donatech.order.model.Coupon;
 import com.donatech.order.model.Order;
 import com.donatech.order.model.OrderItem;
 import com.donatech.order.model.DonationStatus;
+import com.donatech.order.model.TrackingHistory;
 import com.donatech.order.repository.OrderRepository;
+import com.donatech.order.repository.TrackingHistoryRepository;
 import feign.FeignException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,8 +31,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.Base64;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,9 +43,10 @@ public class OrderService {
     private static final int ZERO = 0;
 
     private final OrderRepository orderRepository;
+    private final TrackingHistoryRepository trackingHistoryRepository;
     private final CouponService couponService;
     private final UserValidatorService userValidatorService;
-    private final ProductClient productClient;
+    private final KitClient kitClient;
     private final DonationEventPublisher donationEventPublisher;
 
     public ResponseEntity<OrderResponse> getOrderDtoById(Long id) {
@@ -103,6 +109,7 @@ public class OrderService {
                     .discountApplied(ZERO)
                     .orderDate(LocalDateTime.now())
                     .finalPrice(newItem.getSubtotal())
+                    .campaignId(request.getCampaignId())
                     .items(new java.util.ArrayList<>())
                     .build();
 
@@ -115,7 +122,7 @@ public class OrderService {
 
         // Si SÍ hay carrito -> agregar o actualizar ítem
         OrderItem existingItem = order.getItems().stream()
-                .filter(i -> i.getProductId().equals(itemDto.getProductId()))
+                .filter(i -> i.getKitId().equals(itemDto.getKitId()))
                 .findFirst()
                 .orElse(null);
 
@@ -193,17 +200,26 @@ public class OrderService {
         return ResponseEntity.ok(convertToDTO(existing));
     }
 
-    public ResponseEntity<MessageResponse> updateDonationStatusById(Long id, DonationStatus status) {
+    public ResponseEntity<MessageResponse> updateDonationStatusById(Long id, DonationStatus status, Long changedById) {
         if (status == null) {
             throw new IllegalArgumentException("El estado de la orden no puede ser nulo.");
         }
         Order order = getOrderById(id);
+        DonationStatus estadoAnterior = order.getEstado();
         order.setEstado(status);
         orderRepository.save(order);
 
-        if (status == DonationStatus.CONFIRMED) {
+        trackingHistoryRepository.save(TrackingHistory.builder()
+                .order(order)
+                .estadoAnterior(estadoAnterior)
+                .estadoNuevo(status)
+                .changedById(changedById)
+                .fechaCambio(LocalDateTime.now())
+                .build());
+
+        if (status == DonationStatus.EN_PREPARACION) {
             List<DonationItemEvent> items = order.getItems().stream()
-                    .map(item -> new DonationItemEvent(item.getProductId(), item.getQuantity()))
+                    .map(item -> new DonationItemEvent(item.getKitId(), item.getQuantity()))
                     .toList();
             donationEventPublisher.publishDonationConfirmed(
                     new DonationConfirmedEvent(order.getId(), order.getUserEmail(), items, LocalDateTime.now())
@@ -211,6 +227,73 @@ public class OrderService {
         }
 
         return ResponseEntity.ok(new MessageResponse("Estado de la orden actualizado exitosamente: " + status));
+    }
+
+    public ResponseEntity<List<TrackingHistory>> getOrderHistory(Long id) {
+        getOrderById(id); // valida existencia
+        return ResponseEntity.ok(trackingHistoryRepository.findByOrder_IdOrderByFechaCambioAsc(id));
+    }
+
+    public ResponseEntity<MessageResponse> uploadTransferProof(Long id, byte[] proofBytes) {
+        Order order = getOrderById(id);
+        DonationStatus estadoAnterior = order.getEstado();
+        order.setTransferProof(proofBytes);
+        order.setTransferProofUploadedAt(LocalDateTime.now());
+        order.setEstado(DonationStatus.INGRESADA);
+        orderRepository.save(order);
+
+        trackingHistoryRepository.save(TrackingHistory.builder()
+                .order(order)
+                .estadoAnterior(estadoAnterior)
+                .estadoNuevo(DonationStatus.INGRESADA)
+                .fechaCambio(LocalDateTime.now())
+                .comentario("Comprobante de transferencia adjuntado")
+                .build());
+
+        donationEventPublisher.publishTransferSubmitted(
+                new TransferSubmittedEvent(order.getId(), order.getUserEmail(), LocalDateTime.now())
+        );
+
+        return ResponseEntity.ok(new MessageResponse("Comprobante de transferencia recibido. Estado: INGRESADA"));
+    }
+
+    public ResponseEntity<MessageResponse> uploadDeliveryProof(Long id, byte[] photo, byte[] document) {
+        Order order = getOrderById(id);
+        DonationStatus estadoAnterior = order.getEstado();
+        if (photo != null) order.setDeliveryPhoto(photo);
+        if (document != null) order.setDeliveryDocument(document);
+        order.setEstado(DonationStatus.PENDIENTE_CONFIRMACION);
+        orderRepository.save(order);
+
+        trackingHistoryRepository.save(TrackingHistory.builder()
+                .order(order)
+                .estadoAnterior(estadoAnterior)
+                .estadoNuevo(DonationStatus.PENDIENTE_CONFIRMACION)
+                .fechaCambio(LocalDateTime.now())
+                .comentario("Foto y documento de entrega subidos")
+                .build());
+
+        return ResponseEntity.ok(new MessageResponse("Evidencia de entrega recibida. Estado: PENDIENTE_CONFIRMACION"));
+    }
+
+    public ResponseEntity<MessageResponse> confirmDelivery(Long id, Long confirmedById) {
+        Order order = getOrderById(id);
+        DonationStatus estadoAnterior = order.getEstado();
+        order.setEstado(DonationStatus.ENTREGADA);
+        order.setDeliveryConfirmedAt(LocalDateTime.now());
+        order.setDeliveryConfirmedBy(confirmedById);
+        orderRepository.save(order);
+
+        trackingHistoryRepository.save(TrackingHistory.builder()
+                .order(order)
+                .estadoAnterior(estadoAnterior)
+                .estadoNuevo(DonationStatus.ENTREGADA)
+                .changedById(confirmedById)
+                .fechaCambio(LocalDateTime.now())
+                .comentario("Entrega confirmada")
+                .build());
+
+        return ResponseEntity.ok(new MessageResponse("Entrega confirmada. Estado: ENTREGADA"));
     }
 
     public ResponseEntity<MessageResponse> deleteOrder(Long id) {
@@ -232,6 +315,21 @@ public class OrderService {
     public ResponseEntity<List<OrderResponse>> getByZone(Long zoneId) {
         return ResponseEntity.ok(orderRepository.findByZonaCatastrofeId(zoneId)
                 .stream().map(this::convertToDTO).collect(Collectors.toList()));
+    }
+
+    public ResponseEntity<DashboardResponse> getDashboard() {
+        List<Order> all = orderRepository.findAll();
+        long totalDonations = all.size();
+        long totalItems = all.stream().mapToLong(o -> o.getItems().size()).sum();
+        Map<String, Long> byStatus = Arrays.stream(DonationStatus.values())
+                .collect(Collectors.toMap(DonationStatus::name,
+                        s -> all.stream().filter(o -> o.getEstado() == s).count()));
+        Map<Long, Long> byZone = all.stream()
+                .filter(o -> o.getZonaCatastrofeId() != null)
+                .collect(Collectors.groupingBy(Order::getZonaCatastrofeId, Collectors.counting()));
+        return ResponseEntity.ok(DashboardResponse.builder()
+                .totalDonations(totalDonations).totalItems(totalItems)
+                .donationsByStatus(byStatus).donationsByZone(byZone).build());
     }
 
     // =========================
@@ -308,6 +406,7 @@ public class OrderService {
                 .finalPrice(finalPrice)
                 .discountApplied(discountApplied)
                 .orderDate(currentOrder != null ? currentOrder.getOrderDate() : LocalDateTime.now())
+                .campaignId(dto.getCampaignId())
                 .items(items)
                 .build();
 
@@ -323,45 +422,38 @@ public class OrderService {
     // Construcción de OrderItem
     // =========================
     private OrderItem buildOrderItem(OrderItemRequestDto itemDto) {
-        ProductResponseDto product = fetchProduct(itemDto.getProductId());
-        Integer productPrice = product.getPrecio();
-        if (productPrice == null) {
-            throw new IllegalArgumentException("El producto " + product.getId() + " no tiene un precio definido.");
+        KitResponseDto kit = fetchKit(itemDto.getKitId());
+        Integer kitPrice = kit.getPrecioEstimado();
+        if (kitPrice == null) {
+            throw new IllegalArgumentException("El kit " + kit.getId() + " no tiene precio definido.");
         }
 
-        int unitPrice = productPrice;
         int quantity = itemDto.getQuantity();
-        int subtotal = unitPrice * quantity;
-
-        String imageBase64 = product.getImagen() != null
-                ? Base64.getEncoder().encodeToString(product.getImagen())
-                : null;
+        int subtotal = kitPrice * quantity;
 
         return OrderItem.builder()
-                .productId(product.getId())
-                .productName(product.getNombre())
-                .productDescription(product.getDescripcion())
-                .unitPrice(unitPrice)
-                .productImage(imageBase64)
+                .kitId(kit.getId())
+                .kitNameSnapshot(kit.getNombre())
+                .unitPrice(kitPrice)
                 .quantity(quantity)
                 .subtotal(subtotal)
                 .build();
     }
 
     // =========================
-    // Cliente a ms-products
+    // Cliente a catalog ms — kits
     // =========================
-    private ProductResponseDto fetchProduct(String productId) {
+    private KitResponseDto fetchKit(Long kitId) {
         try {
-            ProductResponseDto product = productClient.getProductById(productId);
-            if (product == null) {
-                throw new ResourceNotFoundException("Producto no encontrado: " + productId);
+            KitResponseDto kit = kitClient.getKitById(kitId);
+            if (kit == null) {
+                throw new ResourceNotFoundException("Kit no encontrado: " + kitId);
             }
-            return product;
+            return kit;
         } catch (FeignException.NotFound e) {
-            throw new ResourceNotFoundException("Producto no encontrado: " + productId);
+            throw new ResourceNotFoundException("Kit no encontrado: " + kitId);
         } catch (FeignException e) {
-            throw new IllegalArgumentException("Error al obtener el producto: " + e.getMessage());
+            throw new IllegalArgumentException("Error al obtener el kit: " + e.getMessage());
         }
     }
 

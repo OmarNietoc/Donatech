@@ -22,14 +22,14 @@ spring:
         - id: catalog-service
           uri: lb://catalog-service
           predicates:
-            - Path=/api/products/**, /api/categories/**, /api/units/**, /api/kits/**, /api/necesidades/**
+            - Path=/api/products/**, /api/categories/**, /api/units/**, /api/kits/**, /api/necesidades/**, /api/campaigns/**
           filters:
             - AuthenticationFilter
 
         - id: order-service
           uri: lb://order-service
           predicates:
-            - Path=/api/orders/**, /api/donations/**, /api/tracking/**
+            - Path=/api/orders/**, /api/donations/**
           filters:
             - AuthenticationFilter
 

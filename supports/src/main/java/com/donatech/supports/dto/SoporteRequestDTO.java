@@ -12,6 +12,8 @@ public class SoporteRequestDTO {
     @NotBlank(message = "La descripción no puede estar vacía")
     private String descripcion;
 
+    private String titulo;
+
     @NotNull(message = "El usuarioId es obligatorio")
     private Long usuarioId;
 
@@ -22,4 +24,5 @@ public class SoporteRequestDTO {
     private TipoSoporte tipo;
 
     private Long donationId;
+    private Long campaignId;
 }

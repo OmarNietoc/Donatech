@@ -192,6 +192,24 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  notification-service:
+    build:
+      context: ./notification
+      dockerfile: Dockerfile
+    container_name: donatech-notification
+    image: donatech/notification-service:latest
+    env_file:
+      - .env
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
   # ─────────────────────────────────────────
   # API Gateway
   # ─────────────────────────────────────────

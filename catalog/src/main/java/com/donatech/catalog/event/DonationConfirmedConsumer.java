@@ -1,6 +1,8 @@
 package com.donatech.catalog.event;
 
+import com.donatech.catalog.model.Kit;
 import com.donatech.catalog.model.Product;
+import com.donatech.catalog.repository.KitRepository;
 import com.donatech.catalog.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,21 +15,30 @@ import org.springframework.stereotype.Service;
 public class DonationConfirmedConsumer {
 
     private final ProductService productService;
+    private final KitRepository kitRepository;
     private final StockLowPublisher stockLowPublisher;
 
     @RabbitListener(queues = "catalog.stock.deduct")
     public void handleDonationConfirmed(DonationConfirmedEvent event) {
         log.info("Descontando stock para donación id={}", event.donationId());
         event.items().forEach(item -> {
-            Product product = productService.deductStock(item.productId(), item.quantity());
-            if (product.getStock() <= product.getStockMinimo()) {
-                stockLowPublisher.publishStockLow(new StockLowEvent(
-                        product.getId(),
-                        product.getNombre(),
-                        product.getStock(),
-                        product.getStockMinimo()
-                ));
+            Kit kit = kitRepository.findById(item.kitId()).orElse(null);
+            if (kit == null) {
+                log.warn("Kit id={} no encontrado, omitiendo descuento de stock", item.kitId());
+                return;
             }
+            kit.getItems().forEach(kitItem -> {
+                int totalUnits = kitItem.getCantidadRequerida() * item.quantity();
+                Product product = productService.deductStock(kitItem.getProduct().getId(), totalUnits);
+                if (product.getStock() <= product.getStockMinimo()) {
+                    stockLowPublisher.publishStockLow(new StockLowEvent(
+                            product.getId(),
+                            product.getNombre(),
+                            product.getStock(),
+                            product.getStockMinimo()
+                    ));
+                }
+            });
         });
     }
 }

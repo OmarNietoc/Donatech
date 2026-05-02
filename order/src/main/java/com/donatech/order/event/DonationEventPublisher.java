@@ -17,4 +17,14 @@ public class DonationEventPublisher {
         log.info("Publicando donation.confirmed para donación id={}", event.donationId());
         rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "donation.confirmed", event);
     }
+
+    public void publishTransferSubmitted(TransferSubmittedEvent event) {
+        log.info("Publicando transfer.submitted para orden id={}", event.orderId());
+        rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "transfer.submitted", event);
+    }
+
+    public void publishOrderReadyForShipping(OrderReadyForShippingEvent event) {
+        log.info("Publicando order.ready_for_shipping para orden id={}", event.orderId());
+        rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "order.ready_for_shipping", event);
+    }
 }
