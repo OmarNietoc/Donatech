@@ -25,3 +25,12 @@ eureka:
       defaultZone: http://discovery-server:8761/eureka/
   instance:
     prefer-ip-address: true
+
+springdoc:
+  swagger-ui:
+    disable-swagger-default-url: true
+    url: /shipping/v3/api-docs
+    config-url: /shipping/v3/api-docs
+    urls:
+      - name: Shipping API
+        url: /shipping/v3/api-docs
