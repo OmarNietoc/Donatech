@@ -7,6 +7,8 @@ import com.donatech.shipping.enums.RouteStatus;
 import com.donatech.shipping.mapper.RouteMapper;
 import com.donatech.shipping.model.Route;
 import com.donatech.shipping.service.RouteService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Tag(name = "Rutas", description = "Creación y gestión de rutas de entrega con optimización OSRM")
 @RestController
 @RequestMapping("/api/routes")
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class RouteController {
     private final RouteService routeService;
     private final RouteMapper routeMapper;
 
+    @Operation(summary = "Listar rutas", description = "Obtiene rutas con filtros opcionales por empresa y estado")
     @GetMapping
     public ResponseEntity<MessageResponse<List<RouteDTO>>> getAllRoutes(
             @RequestParam(required = false) String companyId,
@@ -38,6 +42,7 @@ public class RouteController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Crear ruta", description = "Crea ruta de entrega. Con optimizeRoute=true usa OSRM para optimizar el orden de paradas")
     @PostMapping
     public ResponseEntity<MessageResponse<RouteDTO>> createRoute(@RequestBody RouteCreationRequestDTO request) {
         Route createdRoute = routeService.createRoute(
@@ -57,6 +62,7 @@ public class RouteController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @Operation(summary = "Obtener ruta por ID")
     @GetMapping("/{id}")
     public ResponseEntity<MessageResponse<RouteDTO>> getRouteById(@PathVariable String id) {
         Route route = routeService.getRouteById(id);
@@ -70,6 +76,7 @@ public class RouteController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Actualizar estado de ruta", description = "Actualizar estado. IN_PROGRESS cambia todos los envíos a DISPATCHED automáticamente")
     @PatchMapping("/{id}/status")
     public ResponseEntity<MessageResponse<RouteDTO>> updateRouteStatus(@PathVariable String id, @RequestBody RouteStatus status) {
         Route updated = routeService.updateRouteStatus(id, status);
@@ -81,6 +88,7 @@ public class RouteController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(summary = "Cancelar ruta", description = "Soft delete: cancela la ruta y libera todos los envíos asignados a estado PENDING")
     @DeleteMapping("/{id}")
     public ResponseEntity<MessageResponse<Void>> deleteRoute(@PathVariable String id) {
         routeService.deleteRoute(id);

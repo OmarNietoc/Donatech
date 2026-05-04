@@ -1,5 +1,6 @@
 package com.donatech.order.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -13,6 +14,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Schema(description = "Datos para crear o actualizar una orden de donación")
 public class OrderDto {
 
     @NotBlank(message = "El email del usuario es obligatorio")

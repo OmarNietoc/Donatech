@@ -23,3 +23,13 @@ resilience4j:
 logging:
   level:
     com.donatech: INFO
+
+server:
+  forward-headers-strategy: framework
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  override-with-generic-response: false

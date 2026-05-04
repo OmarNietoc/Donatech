@@ -136,3 +136,4 @@ management:
 donatech:
   app:
     jwtSecret: ${JWT_SECRET:donatechSecretKey12345678901234567890123456789012}
+

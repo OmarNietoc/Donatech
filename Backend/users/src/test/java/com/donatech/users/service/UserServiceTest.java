@@ -3,6 +3,8 @@ package com.donatech.users.service;
 import com.donatech.users.dto.UserDto;
 import com.donatech.users.model.Role;
 import com.donatech.users.model.User;
+import com.donatech.users.repository.ComunaRepository;
+import com.donatech.users.repository.RegionRepository;
 import com.donatech.users.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +29,12 @@ class UserServiceTest {
 
     @Mock
     private RoleService roleService;
+
+    @Mock
+    private RegionRepository regionRepository;
+
+    @Mock
+    private ComunaRepository comunaRepository;
 
     @InjectMocks
     private UserService userService;

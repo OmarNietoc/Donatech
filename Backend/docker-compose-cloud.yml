@@ -55,6 +55,19 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-shipping:
+    image: postgres:16-alpine
+    container_name: donatech-postgres-shipping
+    env_file:
+      - .env
+    volumes:
+      - postgres-shipping-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-donatech}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: donatech-rabbitmq
@@ -210,6 +223,27 @@ services:
       rabbitmq:
         condition: service_healthy
 
+  shipping-service:
+    build:
+      context: ./shipping
+      dockerfile: Dockerfile
+    container_name: donatech-shipping
+    image: donatech/shipping-service:latest
+    env_file:
+      - .env
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_URL: jdbc:postgresql://postgres-shipping:5432/donatech
+    depends_on:
+      postgres-shipping:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
   # ─────────────────────────────────────────
   # API Gateway
   # ─────────────────────────────────────────
@@ -234,3 +268,4 @@ volumes:
   postgres-catalog-data:
   postgres-order-data:
   postgres-supports-data:
+  postgres-shipping-data:
