@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.context.Context;
 
 @Slf4j
 @Service
@@ -18,18 +19,28 @@ public class OrderEventConsumer {
     @RabbitListener(queues = "notification.transfer.rejected")
     public void handleTransferRejected(TransferResultEvent event) {
         log.info("Notificando transferencia rechazada para orden id={}", event.orderId());
-        // TODO: resolver email del donante desde orderId (via Feign a order ms)
-        log.info("Transferencia orden #{} rechazada. Motivo: {}", event.orderId(), event.motivo());
+        Context ctx = new Context();
+        ctx.setVariable("orderId", event.orderId());
+        ctx.setVariable("motivo", event.motivo());
+        emailService.sendHtmlEmail(
+                event.recipientEmail(),
+                "Tu transferencia no fue aprobada — Donatech",
+                "transfer-rejected",
+                ctx
+        );
     }
 
     @RabbitListener(queues = "notification.order.shipped")
     public void handleOrderShipped(OrderShippedEvent event) {
         log.info("Notificando envío de orden id={} a {}", event.orderId(), event.recipientEmail());
-        emailService.sendEmail(
+        Context ctx = new Context();
+        ctx.setVariable("orderId", event.orderId());
+        ctx.setVariable("trackingInfo", event.trackingInfo());
+        emailService.sendHtmlEmail(
                 event.recipientEmail(),
                 "Tu donación está en camino — Donatech",
-                "Tu donación (orden #" + event.orderId() + ") está en camino.\n" +
-                "Seguimiento: " + event.trackingInfo()
+                "order-shipped",
+                ctx
         );
     }
 }

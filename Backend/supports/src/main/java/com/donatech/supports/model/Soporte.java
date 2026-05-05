@@ -67,4 +67,7 @@ public class Soporte {
 
     @Column(name = "fecha_resolucion")
     private LocalDateTime fechaResolucion;
+
+    @Column(name = "recipient_email", length = 255)
+    private String recipientEmail;
 }

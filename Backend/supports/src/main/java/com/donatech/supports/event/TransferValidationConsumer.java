@@ -29,6 +29,7 @@ public class TransferValidationConsumer {
         dto.setPrioridad(PrioridadSoporte.ALTO);
         dto.setTipo(TipoSoporte.VALIDACION_TRANSFERENCIA);
         dto.setDonationId(event.orderId());
+        dto.setRecipientEmail(event.userEmail());
 
         soporteService.crear(dto);
     }

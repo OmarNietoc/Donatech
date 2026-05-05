@@ -57,6 +57,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/api/auth/register/beneficiary", "/api/auth/register/organization").permitAll()
 
+                        // Actuator (health checks de Docker/Eureka)
+                        .requestMatchers("/actuator/**").permitAll()
+
                         // Lista blanca COMPLETA para Swagger y OpenAPI
                         .requestMatchers(
                                 "/v3/api-docs",

@@ -47,6 +47,7 @@ public class SoporteService {
                 .tipo(dto.getTipo())
                 .donationId(dto.getDonationId())
                 .campaignId(dto.getCampaignId())
+                .recipientEmail(dto.getRecipientEmail())
                 .estado(EstadoSoporte.PENDIENTE)
                 .fechaCreacion(LocalDateTime.now())
                 .build();
@@ -110,7 +111,7 @@ public class SoporteService {
         soporte.setFechaResolucion(LocalDateTime.now());
         soporteRepository.save(soporte);
 
-        campaignResultPublisher.publish(new CampaignResultEvent(soporte.getCampaignId(), approved, motivo));
+        campaignResultPublisher.publish(new CampaignResultEvent(soporte.getCampaignId(), approved, motivo, soporte.getRecipientEmail()));
         return ResponseEntity.ok(new MessageResponse("Campaña " + (approved ? "aprobada" : "rechazada") + " correctamente."));
     }
 
@@ -121,7 +122,7 @@ public class SoporteService {
         soporte.setFechaResolucion(LocalDateTime.now());
         soporteRepository.save(soporte);
 
-        transferResultPublisher.publish(new TransferResultEvent(soporte.getDonationId(), approved, motivo));
+        transferResultPublisher.publish(new TransferResultEvent(soporte.getDonationId(), approved, motivo, soporte.getRecipientEmail()));
         return ResponseEntity.ok(new MessageResponse("Transferencia " + (approved ? "aprobada" : "rechazada") + " correctamente."));
     }
 }

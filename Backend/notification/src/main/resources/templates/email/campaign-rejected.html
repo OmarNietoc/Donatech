@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Tu campaña no fue aprobada</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center" style="padding:40px 0;">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="background:#1565c0;padding:24px 32px;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;">Donatech</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 16px;color:#c62828;font-size:20px;">Campaña no aprobada</h2>
+              <p style="color:#555;font-size:15px;line-height:1.6;">
+                La campaña <strong>#<span th:text="${campaignId}"></span></strong> ha sido revisada pero no cumple con los requisitos necesarios para ser activada.
+              </p>
+              <table width="100%" cellpadding="12" cellspacing="0" style="background:#ffebee;border-radius:6px;margin:24px 0;">
+                <tr>
+                  <td>
+                    <p style="margin:0;color:#c62828;font-size:14px;">
+                      <strong>Motivo:</strong><br>
+                      <span th:text="${motivo}" style="font-size:15px;"></span>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              <p style="color:#555;font-size:14px;">
+                Puedes corregir los datos y volver a someter la campaña para revisión.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f4f4f4;padding:16px 32px;text-align:center;">
+              <p style="margin:0;color:#aaa;font-size:12px;">Donatech — Hub Logístico de Donaciones</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

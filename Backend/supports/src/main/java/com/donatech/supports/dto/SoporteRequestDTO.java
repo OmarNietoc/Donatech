@@ -35,4 +35,7 @@ public class SoporteRequestDTO {
 
     @Schema(description = "ID de la campaña relacionada (opcional)")
     private Long campaignId;
+
+    @Schema(description = "Email del destinatario para notificaciones (opcional)")
+    private String recipientEmail;
 }
