@@ -8,10 +8,12 @@ import com.donatech.shipping.model.Shipment;
 import com.donatech.shipping.repository.RouteRepository;
 import com.donatech.shipping.repository.ShipmentRepository;
 import com.donatech.shipping.strategy.ShippingCalculationStrategy;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
@@ -22,6 +24,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,8 +33,8 @@ class RouteServiceTest {
 
     @Mock RouteRepository routeRepository;
     @Mock ShipmentRepository shipmentRepository;
-    @Mock RoutingApiService routingApiService;
     @Mock Map<String, ShippingCalculationStrategy> calculationStrategies;
+    @Spy ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks RouteService routeService;
 
@@ -44,30 +48,45 @@ class RouteServiceTest {
     }
 
     @Test
-    void createRoute_optimizeTrue_callsRoutingApiService() {
+    void createRoute_optimizeTrue_delegatesToStrategy() {
         Shipment s = pendingShipment("s1");
+        ShippingCalculationStrategy mockStrategy = mock(ShippingCalculationStrategy.class);
+        when(mockStrategy.calculateRoute(any(), anyList(), eq(true))).thenReturn("{\"source\":\"OSRM\",\"optimized_order\":[\"s1\"]}");
         when(shipmentRepository.findAllById(List.of("s1"))).thenReturn(List.of(s));
-        when(routingApiService.fetchOptimizedPath(any(Route.class), anyList())).thenReturn("{\"source\":\"OSRM\"}");
-        when(calculationStrategies.get(any())).thenReturn(null);
+        when(calculationStrategies.get(any())).thenReturn(mockStrategy);
         when(routeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Route result = routeService.createRoute("company1", "LOCAL", "Av. Principal 1", List.of("s1"), true);
 
         assertThat(result.getOptimizedPathJson()).contains("OSRM");
-        verify(routingApiService).fetchOptimizedPath(any(), anyList());
+        verify(mockStrategy).calculateRoute(any(), anyList(), eq(true));
     }
 
     @Test
-    void createRoute_optimizeFalse_skipsRoutingApiService() {
+    void createRoute_optimizeFalse_delegatesToStrategyWithFalse() {
         Shipment s = pendingShipment("s1");
+        ShippingCalculationStrategy mockStrategy = mock(ShippingCalculationStrategy.class);
+        when(mockStrategy.calculateRoute(any(), anyList(), eq(false))).thenReturn("{\"source\":\"manual\",\"optimized_order\":[\"s1\"]}");
         when(shipmentRepository.findAllById(List.of("s1"))).thenReturn(List.of(s));
-        when(calculationStrategies.get(any())).thenReturn(null);
+        when(calculationStrategies.get(any())).thenReturn(mockStrategy);
         when(routeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         Route result = routeService.createRoute("company1", "LOCAL", "Av. Principal 1", List.of("s1"), false);
 
         assertThat(result.getOptimizedPathJson()).contains("manual");
-        verify(routingApiService, never()).fetchOptimizedPath(any(), anyList());
+        verify(mockStrategy).calculateRoute(any(), anyList(), eq(false));
+    }
+
+    @Test
+    void createRoute_noStrategy_usesFallback() {
+        Shipment s = pendingShipment("s1");
+        when(shipmentRepository.findAllById(List.of("s1"))).thenReturn(List.of(s));
+        when(calculationStrategies.get(any())).thenReturn(null);
+        when(routeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Route result = routeService.createRoute("company1", "UNKNOWN", "Av. Principal 1", List.of("s1"), true);
+
+        assertThat(result.getOptimizedPathJson()).contains("fallback");
     }
 
     @Test
@@ -163,5 +182,47 @@ class RouteServiceTest {
         assertThat(r.getStatus()).isEqualTo(RouteStatus.CANCELLED);
         assertThat(s.getDeliveryStatus()).isEqualTo(DeliveryStatus.PENDING);
         assertThat(s.getRoute()).isNull();
+    }
+
+    @Test
+    void reorderShipments_validOrder_updatesPathJson() {
+        Shipment s1 = pendingShipment("s1");
+        s1.setDeliveryStatus(DeliveryStatus.ASSIGNED);
+        Shipment s2 = pendingShipment("s2");
+        s2.setDeliveryStatus(DeliveryStatus.ASSIGNED);
+        Route r = Route.builder().id("r1").status(RouteStatus.PLANNED)
+                .shipments(new ArrayList<>(List.of(s1, s2))).build();
+
+        when(routeRepository.findById("r1")).thenReturn(Optional.of(r));
+        when(routeRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        Route result = routeService.reorderShipments("r1", List.of("s2", "s1"));
+
+        assertThat(result.getOptimizedPathJson()).contains("reordered");
+        assertThat(result.getOptimizedPathJson()).contains("s2");
+    }
+
+    @Test
+    void reorderShipments_wrongIds_throwsException() {
+        Shipment s1 = pendingShipment("s1");
+        s1.setDeliveryStatus(DeliveryStatus.ASSIGNED);
+        Route r = Route.builder().id("r1").status(RouteStatus.PLANNED)
+                .shipments(new ArrayList<>(List.of(s1))).build();
+
+        when(routeRepository.findById("r1")).thenReturn(Optional.of(r));
+
+        assertThatThrownBy(() -> routeService.reorderShipments("r1", List.of("s1", "s999")))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void reorderShipments_notPlanned_throwsException() {
+        Route r = Route.builder().id("r1").status(RouteStatus.IN_PROGRESS)
+                .shipments(new ArrayList<>()).build();
+
+        when(routeRepository.findById("r1")).thenReturn(Optional.of(r));
+
+        assertThatThrownBy(() -> routeService.reorderShipments("r1", List.of()))
+                .isInstanceOf(IllegalStateException.class);
     }
 }

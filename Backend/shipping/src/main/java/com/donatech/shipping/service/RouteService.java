@@ -8,14 +8,18 @@ import com.donatech.shipping.repository.RouteRepository;
 import com.donatech.shipping.repository.ShipmentRepository;
 import com.donatech.shipping.strategy.ShippingCalculationStrategy;
 import com.donatech.shipping.exception.RouteNotFoundException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -24,8 +28,8 @@ public class RouteService {
 
     private final RouteRepository routeRepository;
     private final ShipmentRepository shipmentRepository;
-    private final RoutingApiService routingApiService;
     private final Map<String, ShippingCalculationStrategy> calculationStrategies;
+    private final ObjectMapper objectMapper;
 
     @Transactional
     public Route createRoute(String companyId, String carrierId, String originAddress, List<String> shipmentIds, boolean optimizeRoute) {
@@ -39,7 +43,6 @@ public class RouteService {
                 .status(RouteStatus.PLANNED)
                 .build();
 
-        // Buscar pedidos por ID y asociarlos
         List<Shipment> shipments = shipmentRepository.findAllById(shipmentIds);
         if (shipments.size() != shipmentIds.size()) {
             throw new com.donatech.shipping.exception.ShipmentNotFoundException(
@@ -47,7 +50,6 @@ public class RouteService {
         }
 
         for (Shipment shipment : shipments) {
-            // Regla de negocio: Solo admitir paquetes PENDING y sin ruta asignada
             if (shipment.getDeliveryStatus() != DeliveryStatus.PENDING || shipment.getRoute() != null) {
                 throw new IllegalStateException(
                         "El envío con ID " + shipment.getId() + " ya está asignado a otra ruta o no está disponible.");
@@ -57,20 +59,12 @@ public class RouteService {
             route.getShipments().add(shipment);
         }
 
-        // Determinar qué estrategia usar (DhlStrategy, LocalCarrierStrategy, etc.
-        // basado en carrierId)
         String strategyKey = determineStrategyKey(carrierId);
         ShippingCalculationStrategy strategy = calculationStrategies.get(strategyKey);
 
-        if (strategy != null) {
-            String routePlan = strategy.calculateRoute(route);
-            log.info("Plan de ruta comercial generado: {}", routePlan);
-        }
-
-        // Path geográfico: OSRM (optimizeRoute=true) o manual sin llamada externa
-        String pathJson = optimizeRoute
-                ? routingApiService.fetchOptimizedPath(route, shipments)
-                : buildManualRouteJson(shipments);
+        String pathJson = strategy != null
+                ? strategy.calculateRoute(route, shipments, optimizeRoute)
+                : buildFallbackJson(shipments.size());
         route.setOptimizedPathJson(pathJson);
 
         return routeRepository.save(route);
@@ -108,10 +102,42 @@ public class RouteService {
     }
 
     @Transactional
+    public Route reorderShipments(String routeId, List<String> shipmentIds) {
+        Route route = getRouteById(routeId);
+
+        if (route.getStatus() != RouteStatus.PLANNED) {
+            throw new IllegalStateException(
+                    "Solo se puede reordenar una ruta en estado PLANNED. Estado actual: " + route.getStatus());
+        }
+
+        Set<String> routeShipmentIds = new HashSet<>();
+        for (Shipment s : route.getShipments()) {
+            routeShipmentIds.add(s.getId());
+        }
+
+        Set<String> requestedIds = new HashSet<>(shipmentIds);
+        if (!routeShipmentIds.equals(requestedIds)) {
+            throw new IllegalArgumentException(
+                    "Los IDs de envíos no coinciden exactamente con los envíos de la ruta.");
+        }
+
+        try {
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("source", "reordered");
+            result.put("total_stops", shipmentIds.size());
+            result.put("optimized_order", shipmentIds);
+            route.setOptimizedPathJson(objectMapper.writeValueAsString(result));
+        } catch (Exception e) {
+            route.setOptimizedPathJson("{\"source\":\"reordered\"}");
+        }
+
+        return routeRepository.save(route);
+    }
+
+    @Transactional
     public void deleteRoute(String id) {
         Route route = getRouteById(id);
 
-        // Orphan Management (Desasignación)
         List<Shipment> shipments = route.getShipments();
         if (shipments != null) {
             for (Shipment shipment : shipments) {
@@ -122,30 +148,25 @@ public class RouteService {
             route.getShipments().clear();
         }
 
-        // Soft Delete de la ruta
         route.setStatus(RouteStatus.CANCELLED);
         routeRepository.save(route);
     }
 
-    private String buildManualRouteJson(List<Shipment> shipments) {
-        try {
-            Map<String, Object> result = new java.util.LinkedHashMap<>();
-            result.put("source", "manual");
-            result.put("total_stops", shipments.size());
-            List<String> order = shipments.stream().map(Shipment::getId).toList();
-            result.put("optimized_order", order);
-            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(result);
-        } catch (Exception e) {
-            return "{\"source\":\"manual\"}";
-        }
-    }
-
     private String determineStrategyKey(String carrierId) {
-        // En una aplicación real esto podría basarse en configuraciones de DB.
         if ("DHL".equalsIgnoreCase(carrierId)) {
             return "dhlStrategy";
         }
-        return "localCarrierStrategy"; // Default
+        return "localCarrierStrategy";
+    }
+
+    private String buildFallbackJson(int totalShipments) {
+        try {
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("source", "fallback");
+            result.put("total_stops", totalShipments);
+            return objectMapper.writeValueAsString(result);
+        } catch (Exception e) {
+            return "{\"source\":\"fallback\"}";
+        }
     }
 }
-

@@ -3,12 +3,14 @@ package com.donatech.shipping.controller;
 import com.donatech.shipping.dto.MessageResponse;
 import com.donatech.shipping.dto.RouteCreationRequestDTO;
 import com.donatech.shipping.dto.RouteDTO;
+import com.donatech.shipping.dto.RouteReorderRequestDTO;
 import com.donatech.shipping.enums.RouteStatus;
 import com.donatech.shipping.mapper.RouteMapper;
 import com.donatech.shipping.model.Route;
 import com.donatech.shipping.service.RouteService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -83,6 +85,23 @@ public class RouteController {
         MessageResponse<RouteDTO> response = MessageResponse.<RouteDTO>builder()
                 .statusCode(HttpStatus.OK.value())
                 .message("Estado de ruta actualizado exitosamente")
+                .data(routeMapper.toDto(updated))
+                .build();
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Reordenar envíos de una ruta",
+            description = "Actualiza el orden de entrega de los envíos en una ruta PLANNED. " +
+                    "Enviar la lista completa de shipmentIds en el nuevo orden deseado (drag & drop). " +
+                    "Guarda el resultado con source='reordered' en optimizedPathJson.")
+    @PatchMapping("/{id}/reorder")
+    public ResponseEntity<MessageResponse<RouteDTO>> reorderShipments(
+            @PathVariable String id,
+            @Valid @RequestBody RouteReorderRequestDTO request) {
+        Route updated = routeService.reorderShipments(id, request.getShipmentIds());
+        MessageResponse<RouteDTO> response = MessageResponse.<RouteDTO>builder()
+                .statusCode(HttpStatus.OK.value())
+                .message("Orden de envíos actualizado exitosamente")
                 .data(routeMapper.toDto(updated))
                 .build();
         return ResponseEntity.ok(response);

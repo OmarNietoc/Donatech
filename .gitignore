@@ -54,9 +54,12 @@ logs/
 docker-data/
 pgdata/
 
-# === Node.js ===
+# === Node.js / Frontend ===
 node_modules/
 dist/
+*.tsbuildinfo
+.vite/
+.pnpm-store/
 
 # === Spring Boot ===
 HELP.md

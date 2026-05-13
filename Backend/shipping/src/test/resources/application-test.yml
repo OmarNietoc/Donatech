@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+  cloud:
+    discovery:
+      enabled: false
+  rabbitmq:
+    host: localhost
+
+eureka:
+  client:
+    enabled: false
+
+routing:
+  osrm-base-url: http://router.project-osrm.org
+  nominatim-base-url: https://nominatim.openstreetmap.org
