@@ -304,7 +304,6 @@ Donatech/
 ├── docker-compose-cloud.yml
 ├── init-dbs.sql          # Script de inicialización de bases de datos
 ├── .env.example          # Plantilla de variables de entorno
-└── CLAUDE.md             # Documentación técnica del proyecto
 ```
 
 Cada microservicio sigue la estructura estándar de Spring Boot:

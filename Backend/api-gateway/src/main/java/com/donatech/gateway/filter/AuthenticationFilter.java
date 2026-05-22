@@ -92,6 +92,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                 "/api/products",
                 "/api/categories",
                 "/api/units",
+                "/api/campaigns",
                 "/api/regions",
                 "/api/comunas",
                 "/swagger-ui",
@@ -100,7 +101,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
         public java.util.function.Predicate<ServerHttpRequest> isSecured = request -> openApiEndpoints
                 .stream()
-                .noneMatch(uri -> request.getURI().getPath().contains(uri));
+                .noneMatch(uri -> request.getURI().getPath().startsWith(uri));
     }
 
     private final RouteValidator validator = new RouteValidator();
