@@ -11,9 +11,11 @@ spring:
     password: ${RABBITMQ_PASS:guest}
   datasource:
     url: jdbc:postgresql://localhost:5432/donatech
-    username: donatech
-    password: password
+    username: users_user
+    password: ${USERS_DB_PASS:users_pass}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-init-sql: "SET search_path TO users"
   jpa:
     hibernate:
       ddl-auto: update
@@ -21,6 +23,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: users
   sql:
     init:
       mode: always

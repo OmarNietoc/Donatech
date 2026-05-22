@@ -15,8 +15,8 @@ spring:
         enabled: true
   datasource:
     url: jdbc:postgresql://localhost:5432/donatech
-    username: donatech
-    password: password
+    username: supports_user
+    password: ${SUPPORTS_DB_PASS:supports_pass}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -24,6 +24,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: supports
 
 eureka:
   client:

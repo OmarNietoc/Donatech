@@ -15,13 +15,16 @@ spring:
         enabled: true
   datasource:
     url: ${DB_URL}
-    username: ${POSTGRES_USER:donatech}
-    password: ${POSTGRES_PASSWORD:password}
+    username: ${SUPPORTS_DB_USER:supports_user}
+    password: ${SUPPORTS_DB_PASS:supports_pass}
     driver-class-name: org.postgresql.Driver
   jpa:
     generate-ddl: true
     hibernate:
       ddl-auto: update
+    properties:
+      hibernate:
+        default_schema: supports
 
 eureka:
   client:

@@ -11,15 +11,20 @@ spring:
     password: ${RABBITMQ_PASS:guest}
   datasource:
     url: ${DB_URL}
-    username: ${POSTGRES_USER:donatech}
-    password: ${POSTGRES_PASSWORD:password}
+    username: ${CATALOG_DB_USER:catalog_user}
+    password: ${CATALOG_DB_PASS:catalog_pass}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-init-sql: "SET search_path TO catalog"
   jpa:
     show-sql: true
     generate-ddl: true
     hibernate:
       ddl-auto: update
     defer-datasource-initialization: true
+    properties:
+      hibernate:
+        default_schema: catalog
   sql:
     init:
       mode: always

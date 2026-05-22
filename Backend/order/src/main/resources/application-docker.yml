@@ -15,13 +15,16 @@ spring:
         enabled: true
   datasource:
     url: ${DB_URL}
-    username: ${POSTGRES_USER:donatech}
-    password: ${POSTGRES_PASSWORD:password}
+    username: ${ORDER_DB_USER:order_user}
+    password: ${ORDER_DB_PASS:order_pass}
     driver-class-name: org.postgresql.Driver
   jpa:
     generate-ddl: true
     hibernate:
       ddl-auto: update
+    properties:
+      hibernate:
+        default_schema: orders
 
 eureka:
   client:

@@ -6,13 +6,16 @@ spring:
     name: shipping-service
   datasource:
     url: jdbc:postgresql://localhost:5432/donatech
-    username: donatech
-    password: password
+    username: shipping_user
+    password: ${SHIPPING_DB_PASS:shipping_pass}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
+    properties:
+      hibernate:
+        default_schema: shipping
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: 5672

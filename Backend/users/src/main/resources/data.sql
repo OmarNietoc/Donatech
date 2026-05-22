@@ -55,6 +55,40 @@ INSERT INTO comunas (id, name, id_region) VALUES (31, 'San Ramón', 7) ON CONFLI
 INSERT INTO comunas (id, name, id_region) VALUES (32, 'Vitacura', 7) ON CONFLICT (id) DO NOTHING;
 
 -- ============================================
+-- COMUNAS - OTRAS REGIONES (Idempotente)
+-- ============================================
+INSERT INTO comunas (id, name, id_region) VALUES (33, 'Arica', 1) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (34, 'Camarones', 1) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (35, 'Iquique', 2) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (36, 'Alto Hospicio', 2) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (37, 'Antofagasta', 3) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (38, 'Calama', 3) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (39, 'Copiapó', 4) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (40, 'Vallenar', 4) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (41, 'La Serena', 5) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (42, 'Coquimbo', 5) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (43, 'Valparaíso', 6) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (44, 'Viña del Mar', 6) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (45, 'Rancagua', 8) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (46, 'San Fernando', 8) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (47, 'Talca', 9) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (48, 'Curicó', 9) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (49, 'Chillán', 10) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (50, 'San Carlos', 10) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (51, 'Concepción', 11) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (52, 'Talcahuano', 11) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (53, 'Temuco', 12) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (54, 'Padre Las Casas', 12) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (55, 'Valdivia', 13) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (56, 'La Unión', 13) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (57, 'Puerto Montt', 14) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (58, 'Osorno', 14) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (59, 'Coyhaique', 15) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (60, 'Puerto Aysén', 15) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (61, 'Punta Arenas', 16) ON CONFLICT (id) DO NOTHING;
+INSERT INTO comunas (id, name, id_region) VALUES (62, 'Puerto Natales', 16) ON CONFLICT (id) DO NOTHING;
+
+-- ============================================
 -- ROLES DONATECH (Idempotente)
 -- ============================================
 INSERT INTO role (id, name) VALUES (1, 'ROLE_ADMIN') ON CONFLICT (id) DO NOTHING;
