@@ -95,11 +95,9 @@ public class UserService {
                 role,
                 userDto.getStatus(),
                 userDto.getImagen(),
-                userDto.getFirebaseId(),
                 userDto.getPhone(),
                 regionRepository.getRegionById(userDto.getRegion()),
                 comunaRepository.getComunaById(userDto.getComuna())
-
         );
 
         userRepository.save(user);
@@ -117,7 +115,6 @@ public class UserService {
         user.setStatus(userDetails.getStatus());
         user.setRole(role);
         user.setImagen(userDetails.getImagen());
-        user.setFirebaseId(userDetails.getFirebaseId());
 
         userRepository.save(user);
     }

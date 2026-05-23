@@ -38,6 +38,11 @@ public class BeneficiaryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Beneficiario no encontrado: " + id));
     }
 
+    public Beneficiary getByUserId(Long userId) {
+        return beneficiaryRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Perfil de beneficiario no encontrado para usuario: " + userId));
+    }
+
     public Beneficiary create(BeneficiaryDto dto) {
         if (!RutValidator.isValid(dto.getRut())) {
             throw new IllegalArgumentException("RUT inválido: " + dto.getRut());

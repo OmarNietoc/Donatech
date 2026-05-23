@@ -13,5 +13,6 @@ public interface BeneficiaryRepository extends JpaRepository<Beneficiary, Long> 
     Optional<Beneficiary> findByRut(String rut);
     boolean existsByRut(String rut);
     boolean existsByUserId(Long userId);
+    Optional<Beneficiary> findByUserId(Long userId);
     List<Beneficiary> findByEstadoVerificacion(EstadoVerificacion estado);
 }

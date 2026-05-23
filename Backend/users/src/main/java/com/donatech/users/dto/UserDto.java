@@ -39,10 +39,6 @@ public class UserDto {
     @Column(name = "imagen", columnDefinition = "LONGBLOB", nullable = true)
     private byte[] imagen;
 
-    // Firebase UID (nullable)
-    @Column(name = "firebase_id", length = 255, nullable = true)
-    private String firebaseId;
-
     private String phone;
     private Long region;
     private Long comuna;

@@ -11,16 +11,17 @@ spring:
 
 resilience4j:
   circuitbreaker:
-    instances:
-      users-service:
+    configs:
+      default:
         slidingWindowSize: 10
+        minimumNumberOfCalls: 5
         failureRateThreshold: 50
-        waitDurationInOpenState: 15s
+        waitDurationInOpenState: 30s
         permittedNumberOfCallsInHalfOpenState: 3
   timelimiter:
-    instances:
-      users-service:
-        timeoutDuration: 3s
+    configs:
+      default:
+        timeoutDuration: 10s
 
 donatech:
   app:

@@ -1,6 +1,7 @@
 package com.donatech.auth.client;
 
 import com.donatech.auth.dto.CreateBeneficiaryInternalDto;
+import com.donatech.auth.dto.CreateCompanyInternalDto;
 import com.donatech.auth.dto.RegisterRequest;
 import com.donatech.auth.dto.UserCredentialsDto;
 import org.springframework.stereotype.Component;
@@ -23,5 +24,10 @@ public class UserServiceClientFallback implements UserServiceClient {
     @Override
     public Map<String, Long> createBeneficiary(CreateBeneficiaryInternalDto dto) {
         throw new RuntimeException("users-service no disponible — createBeneficiary fallback");
+    }
+
+    @Override
+    public Map<String, Long> createCompanyDetails(CreateCompanyInternalDto dto) {
+        throw new RuntimeException("users-service no disponible — createCompanyDetails fallback");
     }
 }

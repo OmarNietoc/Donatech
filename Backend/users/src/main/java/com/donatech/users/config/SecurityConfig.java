@@ -35,6 +35,8 @@ public class SecurityConfig {
                                 "/api/regions/**",
                                 "/api/comunas",
                                 "/api/comunas/**",
+                                "/api/users/internal/**",
+                                "/actuator/**",
                                 "/v3/api-docs",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",

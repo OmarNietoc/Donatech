@@ -53,10 +53,6 @@ public class User {
     @Column(name = "imagen", nullable = true)
     private byte[] imagen;
 
-    // Firebase UID (nullable)
-    @Column(name = "firebase_id", length = 255, nullable = true)
-    private String firebaseId;
-
     // Phone number (nullable)
     @Column(name = "phone", nullable = true)
     private String phone;
@@ -73,11 +69,11 @@ public class User {
 
     // 🔹 Constructor principal sin los campos opcionales
     public User(String name, String email, String password, Role role, Integer status) {
-        this(name, email, password, role, status, null, null, null, null, null);
+        this(name, email, password, role, status, null, null, null, null);
     }
 
     // 🔹 Constructor completo con los campos opcionales
-    public User(String name, String email, String password, Role role, Integer status, byte[] imagen, String firebaseId,
+    public User(String name, String email, String password, Role role, Integer status, byte[] imagen,
             String phone, Region region, Comuna comuna) {
         this.name = name;
         this.email = email;
@@ -85,7 +81,6 @@ public class User {
         this.role = role;
         this.status = status;
         this.imagen = imagen;
-        this.firebaseId = firebaseId;
         this.phone = phone;
         this.region = region;
         this.comuna = comuna;

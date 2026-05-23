@@ -2,6 +2,8 @@ package com.donatech.auth.controller;
 
 import com.donatech.auth.client.UserServiceClient;
 import com.donatech.auth.dto.*;
+import com.donatech.auth.dto.CreateCompanyInternalDto;
+import com.donatech.auth.dto.RegisterOrganizationRequest;
 import com.donatech.auth.security.jwt.JwtUtils;
 import com.donatech.auth.security.services.UserDetailsImpl;
 import com.donatech.auth.util.RutValidator;
@@ -87,12 +89,28 @@ public class AuthController {
                 .body(new MessageResponse("Beneficiario registrado exitosamente"));
     }
 
-    @Operation(summary = "Registro organización", description = "Registra usuario con rol ROLE_ORGANIZACION")
+    @Operation(summary = "Registro organización", description = "Registra usuario con rol ROLE_ORGANIZACION y datos de empresa")
     @PostMapping("/register/organization")
-    public ResponseEntity<MessageResponse> registerOrganization(@Valid @RequestBody RegisterRequest request) {
-        request.setPassword(passwordEncoder.encode(request.getPassword()));
-        request.setRoleId(5L);
-        userServiceClient.createUser(request);
+    public ResponseEntity<MessageResponse> registerOrganization(@Valid @RequestBody RegisterOrganizationRequest request) {
+        RegisterRequest userRequest = new RegisterRequest();
+        userRequest.setName(request.getName());
+        userRequest.setEmail(request.getEmail());
+        userRequest.setPassword(passwordEncoder.encode(request.getPassword()));
+        userRequest.setRoleId(5L);
+        userRequest.setPhone(request.getPhone());
+        userRequest.setRegionId(request.getRegionId());
+        userRequest.setComunaId(request.getComunaId());
+
+        UserCredentialsDto created = userServiceClient.createUser(userRequest);
+
+        userServiceClient.createCompanyDetails(new CreateCompanyInternalDto(
+                created.getId(),
+                request.getRut(),
+                request.getRazonSocial(),
+                request.getGiro(),
+                request.getDireccionLegal()
+        ));
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new MessageResponse("Organización registrada exitosamente"));
     }

@@ -35,6 +35,12 @@ public class BeneficiaryController {
         return ResponseEntity.ok(beneficiaryService.getById(id));
     }
 
+    @GetMapping("/by-user/{userId}")
+    @Operation(summary = "Obtener beneficiario por User ID")
+    public ResponseEntity<Beneficiary> getByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(beneficiaryService.getByUserId(userId));
+    }
+
     @GetMapping("/by-estado")
     @Operation(summary = "Filtrar beneficiarios por estado de verificación")
     public ResponseEntity<List<Beneficiary>> getByEstado(@RequestParam EstadoVerificacion estado) {

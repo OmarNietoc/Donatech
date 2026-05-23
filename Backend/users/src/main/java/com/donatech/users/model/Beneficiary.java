@@ -3,6 +3,7 @@ package com.donatech.users.model;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -25,8 +26,9 @@ public class Beneficiary {
     @NotNull
     private User user;
 
-    @NotBlank
-    @Column(unique = true, nullable = false, length = 12)
+    @NotBlank(message = "El RUT es obligatorio")
+    @Pattern(regexp = "\\d{7,8}-[\\dkK]", message = "RUT inválido (ej: 12345678-9)")
+    @Column(unique = true, nullable = false, length = 10)
     private String rut;
 
     @Enumerated(EnumType.STRING)

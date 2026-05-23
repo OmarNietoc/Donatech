@@ -58,7 +58,6 @@ class UserServiceTest {
                 role,
                 1,
                 null, // imagen
-                null, // firebaseId
                 null, // phone
                 null, // region
                 null // comuna

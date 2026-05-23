@@ -26,7 +26,7 @@ public class CompanyDetails {
     private User user;
 
     @NotBlank(message = "El RUT es obligatorio")
-    @Pattern(regexp = "\\d{7,8}-[\\dkK]", message = "RUT inválido (ej: 12345678-9)")
+    @Pattern(regexp = "\\d{7,8}-[\\dkK]", message = "RUT inválido (ej: 12345678-5)")
     @Column(nullable = false, unique = true, length = 12)
     private String rut;
 

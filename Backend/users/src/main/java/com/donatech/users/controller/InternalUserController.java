@@ -1,6 +1,7 @@
 package com.donatech.users.controller;
 
 import com.donatech.users.dto.BeneficiaryDto;
+import com.donatech.users.dto.CompanyDetailsDto;
 import com.donatech.users.dto.CreateUserInternalDto;
 import com.donatech.users.dto.UserCredentialsDto;
 import com.donatech.users.exception.ConflictException;
@@ -32,6 +33,7 @@ public class InternalUserController {
     private final RegionRepository regionRepository;
     private final ComunaRepository comunaRepository;
     private final BeneficiaryService beneficiaryService;
+    private final com.donatech.users.service.CompanyDetailsService companyDetailsService;
 
     @GetMapping("/credentials")
     public ResponseEntity<UserCredentialsDto> getCredentialsByEmail(@RequestParam String email) {
@@ -55,10 +57,17 @@ public class InternalUserController {
                 ? comunaRepository.findById(dto.getComunaId()).orElse(null) : null;
 
         User user = new User(dto.getName(), dto.getEmail(), dto.getPassword(),
-                role, 1, null, null, dto.getPhone(), region, comuna);
+                role, 1, null, dto.getPhone(), region, comuna);
 
         userRepository.save(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(toCredentialsDto(user));
+    }
+
+    @PostMapping("/company")
+    public ResponseEntity<Map<String, Long>> createCompanyInternal(@Valid @RequestBody CompanyDetailsDto dto) {
+        companyDetailsService.createOrUpdate(dto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(Map.of("userId", dto.getUserId()));
     }
 
     @PostMapping("/beneficiary")

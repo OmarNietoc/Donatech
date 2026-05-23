@@ -3,6 +3,7 @@ package com.donatech.auth.config;
 import com.donatech.auth.security.jwt.AuthEntryPointJwt;
 import com.donatech.auth.security.jwt.AuthTokenFilter;
 import com.donatech.auth.security.services.UserDetailsServiceImpl;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,6 +54,7 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         // Rutas públicas de tu API de Auth
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/api/auth/register/beneficiary", "/api/auth/register/organization").permitAll()

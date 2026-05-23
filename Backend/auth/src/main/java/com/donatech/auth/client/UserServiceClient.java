@@ -1,6 +1,7 @@
 package com.donatech.auth.client;
 
 import com.donatech.auth.dto.CreateBeneficiaryInternalDto;
+import com.donatech.auth.dto.CreateCompanyInternalDto;
 import com.donatech.auth.dto.RegisterRequest;
 import com.donatech.auth.dto.UserCredentialsDto;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -22,4 +23,7 @@ public interface UserServiceClient {
 
     @PostMapping("/internal/beneficiary")
     Map<String, Long> createBeneficiary(@RequestBody CreateBeneficiaryInternalDto dto);
+
+    @PostMapping("/internal/company")
+    Map<String, Long> createCompanyDetails(@RequestBody CreateCompanyInternalDto dto);
 }
