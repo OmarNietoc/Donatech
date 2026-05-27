@@ -18,13 +18,19 @@ spring:
     username: ${SUPPORTS_DB_USER:supports_user}
     password: ${SUPPORTS_DB_PASS:supports_pass}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-init-sql: "SET search_path TO supports"
   jpa:
     generate-ddl: true
     hibernate:
       ddl-auto: update
+    defer-datasource-initialization: true
     properties:
       hibernate:
         default_schema: supports
+  sql:
+    init:
+      mode: always
 
 eureka:
   client:

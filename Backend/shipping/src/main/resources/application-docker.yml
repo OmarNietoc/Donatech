@@ -5,17 +5,23 @@ spring:
   application:
     name: shipping-service
   datasource:
-    url: ${DB_URL:jdbc:postgresql://postgres:5432/donatech}
+    url: ${DB_URL:jdbc:postgresql://postgres-shipping:5432/donatech}
     username: ${SHIPPING_DB_USER:shipping_user}
     password: ${SHIPPING_DB_PASS:shipping_pass}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-init-sql: "SET search_path TO shipping"
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
+    defer-datasource-initialization: true
     properties:
       hibernate:
         default_schema: shipping
+  sql:
+    init:
+      mode: always
   rabbitmq:
     host: ${RABBITMQ_HOST:rabbitmq}
     port: 5672

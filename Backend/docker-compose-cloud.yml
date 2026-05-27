@@ -1,8 +1,14 @@
+name: donatech-backend-cloud
+
 services:
 
   # ─────────────────────────────────────────
-  # Infraestructura Cloud (Simulando Bases de Datos Independientes)
+  # Infraestructura Cloud (Bases de Datos Independientes por Microservicio)
   # ─────────────────────────────────────────
+  # NOTA: Los volúmenes named mantienen los datos entre reinicios y rebuilds de imagen.
+  # Los scripts db/postgres-*/01-init.sh solo se ejecutan cuando el volumen está vacío.
+  # ─────────────────────────────────────────
+
   postgres-users:
     image: postgres:16-alpine
     container_name: donatech-postgres-users
@@ -10,6 +16,7 @@ services:
       - .env
     volumes:
       - postgres-users-data:/var/lib/postgresql/data
+      - ./db/postgres-users:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-donatech}"]
       interval: 10s
@@ -23,6 +30,7 @@ services:
       - .env
     volumes:
       - postgres-catalog-data:/var/lib/postgresql/data
+      - ./db/postgres-catalog:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-donatech}"]
       interval: 10s
@@ -36,6 +44,7 @@ services:
       - .env
     volumes:
       - postgres-order-data:/var/lib/postgresql/data
+      - ./db/postgres-order:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-donatech}"]
       interval: 10s
@@ -49,6 +58,7 @@ services:
       - .env
     volumes:
       - postgres-supports-data:/var/lib/postgresql/data
+      - ./db/postgres-supports:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-donatech}"]
       interval: 10s
@@ -62,6 +72,7 @@ services:
       - .env
     volumes:
       - postgres-shipping-data:/var/lib/postgresql/data
+      - ./db/postgres-shipping:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-donatech}"]
       interval: 10s

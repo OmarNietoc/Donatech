@@ -18,13 +18,19 @@ spring:
     username: ${ORDER_DB_USER:order_user}
     password: ${ORDER_DB_PASS:order_pass}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-init-sql: "SET search_path TO orders"
   jpa:
     generate-ddl: true
     hibernate:
       ddl-auto: update
+    defer-datasource-initialization: true
     properties:
       hibernate:
         default_schema: orders
+  sql:
+    init:
+      mode: always
 
 eureka:
   client:
