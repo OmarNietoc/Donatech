@@ -270,6 +270,9 @@ services:
       - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      # IP pública de la EC2 del frontend (para CORS).
+      # Reemplazar en el .env con: FRONTEND_URL=http://IP_FRONTEND
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
     depends_on:
       discovery-server:
         condition: service_healthy

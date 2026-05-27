@@ -4,6 +4,29 @@ server:
 spring:
   application:
     name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                # Orígenes permitidos en producción.
+                # FRONTEND_URL se inyecta desde docker-compose-cloud.yml
+                # Ejemplo: http://54.123.45.67 (IP pública de la EC2 frontend)
+                allowedOriginPatterns:
+                  - "${FRONTEND_URL:http://localhost}"
+                  - "http://localhost:5173"
+                  - "http://localhost"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                  - OPTIONS
+                allowedHeaders: "*"
+                allowCredentials: false
 
 eureka:
   client:
@@ -15,3 +38,8 @@ eureka:
 donatech:
   app:
     jwtSecret: ${JWT_SECRET:donatechSecretKey12345678901234567890123456789012}
+    jwtExpirationMs: ${JWT_EXPIRATION_MS:86400000}
+
+springdoc:
+  swagger-ui:
+    disable-swagger-default-url: true
