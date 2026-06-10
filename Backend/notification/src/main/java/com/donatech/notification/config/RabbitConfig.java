@@ -62,6 +62,26 @@ public class RabbitConfig {
     }
 
     @Bean
+    public Queue donationReceivedQueue() {
+        return new Queue("notification.donation.received", true);
+    }
+
+    @Bean
+    public Binding donationReceivedBinding(Queue donationReceivedQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(donationReceivedQueue).to(donatechExchange).with("transfer.submitted");
+    }
+
+    @Bean
+    public Queue transferApprovedQueue() {
+        return new Queue("notification.transfer.approved", true);
+    }
+
+    @Bean
+    public Binding transferApprovedBinding(Queue transferApprovedQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(transferApprovedQueue).to(donatechExchange).with("transfer.validated");
+    }
+
+    @Bean
     public Jackson2JsonMessageConverter jsonMessageConverter() {
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter();
         DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();

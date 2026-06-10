@@ -2,6 +2,7 @@ package com.donatech.catalog.service;
 
 import com.donatech.catalog.controller.response.MessageResponse;
 import com.donatech.catalog.dto.KitDto;
+import com.donatech.catalog.dto.response.KitResponseDto;
 import com.donatech.catalog.exception.ResourceNotFoundException;
 import com.donatech.catalog.model.Kit;
 import com.donatech.catalog.repository.KitRepository;
@@ -28,24 +29,25 @@ class KitServiceTest {
 
     @Mock KitRepository kitRepository;
     @Mock ProductRepository productRepository;
+    @Mock ImageStorageService imageStorageService;
 
     @InjectMocks KitService kitService;
 
     @Test
     void getAll_returnsList() {
-        when(kitRepository.findAll()).thenReturn(List.of(new Kit()));
+        when(kitRepository.findAll()).thenReturn(List.of(Kit.builder().items(new ArrayList<>()).build()));
 
-        List<Kit> result = kitService.getAll();
+        List<KitResponseDto> result = kitService.getAll();
 
         assertThat(result).hasSize(1);
     }
 
     @Test
     void getById_exists_returnsKit() {
-        Kit kit = Kit.builder().id(1L).nombre("Kit Agua").build();
+        Kit kit = Kit.builder().id(1L).nombre("Kit Agua").items(new ArrayList<>()).build();
         when(kitRepository.findById(1L)).thenReturn(Optional.of(kit));
 
-        Kit result = kitService.getById(1L);
+        KitResponseDto result = kitService.getById(1L);
 
         assertThat(result.getNombre()).isEqualTo("Kit Agua");
     }

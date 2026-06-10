@@ -1,14 +1,11 @@
 package com.donatech.catalog.model;
 
-import jakarta.persistence.Basic;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Max;
@@ -78,10 +75,8 @@ public class Product {
     @NotNull(message = "La unidad es obligatoria")
     private Unit unid;
 
-    @Lob
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "imagen")
-    private byte[] imagen;
+    @Column(name = "imagen_url", length = 500)
+    private String imagenUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "prioridad", length = 20)

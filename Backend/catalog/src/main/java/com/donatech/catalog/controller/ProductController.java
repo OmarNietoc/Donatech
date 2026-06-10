@@ -2,26 +2,18 @@ package com.donatech.catalog.controller;
 
 import com.donatech.catalog.controller.response.MessageResponse;
 import com.donatech.catalog.dto.ProductDto;
+import com.donatech.catalog.dto.response.ProductResponseDto;
 import com.donatech.catalog.model.Prioridad;
-import com.donatech.catalog.model.Product;
 import com.donatech.catalog.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -33,14 +25,7 @@ public class ProductController {
 
     private final ProductService productService;
 
-    @Operation(
-            summary = "Listar productos con paginación y filtros opcionales",
-            description = "Obtiene una lista paginada de productos, con opción de filtrar por categoría o unidad."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Productos listados exitosamente"),
-            @ApiResponse(responseCode = "204", description = "No se encontraron productos")
-    })
+    @Operation(summary = "Listar productos con paginación")
     @GetMapping
     public ResponseEntity<?> getProducts(
             @RequestParam(defaultValue = "0") Integer page,
@@ -48,76 +33,62 @@ public class ProductController {
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) Long unitId) {
 
-        Page<Product> products = productService.getProducts(page, size, categoryId, unitId);
-        List<Product> content = products.getContent();
-        if (content.isEmpty()) {
-            return ResponseEntity.noContent().build();
-        }
+        Page<ProductResponseDto> products = productService.getProducts(page, size, categoryId, unitId);
+        List<ProductResponseDto> content = products.getContent();
+        if (content.isEmpty()) return ResponseEntity.noContent().build();
         return ResponseEntity.ok(content);
     }
 
-    @Operation(
-            summary = "Obtener producto por ID",
-            description = "Devuelve el detalle de un producto específico según su ID."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Producto encontrado"),
-            @ApiResponse(responseCode = "404", description = "Producto no encontrado")
-    })
+    @Operation(summary = "Obtener producto por ID")
     @GetMapping("/{id}")
-    public ResponseEntity<?> getProductById(@PathVariable String id) {
-        Product product = productService.getProductById(id);
-        return ResponseEntity.ok(product);
+    public ResponseEntity<ProductResponseDto> getProductById(@PathVariable String id) {
+        return ResponseEntity.ok(productService.getProductById(id));
     }
 
-    @Operation(summary = "Productos con stock bajo o igual al mínimo")
+    @Operation(summary = "Imagen de producto")
+    @GetMapping("/{id}/image")
+    public ResponseEntity<byte[]> getImage(@PathVariable String id) {
+        byte[] bytes = productService.getImage(id);
+        if (bytes == null || bytes.length == 0) return ResponseEntity.notFound().build();
+        String ct = productService.getImageContentType(id);
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(ct)).body(bytes);
+    }
+
+    @Operation(summary = "Subir imagen de producto")
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MessageResponse> uploadImage(
+            @PathVariable String id,
+            @RequestParam("file") MultipartFile file) {
+        return productService.uploadImage(id, file);
+    }
+
+    @Operation(summary = "Productos con stock bajo")
     @GetMapping("/low-stock")
-    public ResponseEntity<List<Product>> getLowStockProducts() {
+    public ResponseEntity<List<?>> getLowStockProducts() {
         return ResponseEntity.ok(productService.getLowStockProducts());
     }
 
     @Operation(summary = "Productos por prioridad")
-    @ApiResponse(responseCode = "200", description = "Productos listados por prioridad")
     @GetMapping("/by-priority")
-    public ResponseEntity<List<Product>> getByPriority(@RequestParam Prioridad prioridad) {
+    public ResponseEntity<List<?>> getByPriority(@RequestParam Prioridad prioridad) {
         return ResponseEntity.ok(productService.getProductsByPriority(prioridad));
     }
 
-    @Operation(
-            summary = "Crear nuevo producto",
-            description = "Registra un nuevo producto a partir de un objeto ProductDto."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", description = "Producto creado exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Datos inválidos en la solicitud")
-    })
+    @Operation(summary = "Crear nuevo producto")
     @PostMapping
     public ResponseEntity<?> createProduct(@Valid @RequestBody ProductDto dto) {
         return productService.createProduct(dto);
     }
 
-    @Operation(
-            summary = "Actualizar producto existente",
-            description = "Actualiza los detalles de un producto a partir de su ID y un objeto ProductDto."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Producto actualizado exitosamente"),
-            @ApiResponse(responseCode = "400", description = "Datos inválidos en la solicitud"),
-            @ApiResponse(responseCode = "404", description = "Producto no encontrado")
-    })
+    @Operation(summary = "Actualizar producto existente")
     @PutMapping("/{id}")
-    public ResponseEntity<MessageResponse> updateProduct(@PathVariable String id, @Valid @RequestBody ProductDto productDto) {
+    public ResponseEntity<MessageResponse> updateProduct(
+            @PathVariable String id,
+            @Valid @RequestBody ProductDto productDto) {
         return productService.updateProduct(id, productDto);
     }
 
-    @Operation(
-            summary = "Eliminar producto",
-            description = "Elimina un producto por su ID."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Producto eliminado exitosamente"),
-            @ApiResponse(responseCode = "404", description = "Producto no encontrado")
-    })
+    @Operation(summary = "Eliminar producto")
     @DeleteMapping("/{id}")
     public ResponseEntity<MessageResponse> deleteProduct(@PathVariable String id) {
         return productService.deleteProduct(id);

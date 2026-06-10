@@ -2,6 +2,7 @@ package com.donatech.notification.consumer;
 
 import com.donatech.notification.event.OrderShippedEvent;
 import com.donatech.notification.event.TransferResultEvent;
+import com.donatech.notification.event.TransferSubmittedEvent;
 import com.donatech.notification.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +41,33 @@ public class OrderEventConsumer {
                 event.recipientEmail(),
                 "Tu donación está en camino — Donatech",
                 "order-shipped",
+                ctx
+        );
+    }
+
+    @RabbitListener(queues = "notification.donation.received")
+    public void handleDonationReceived(TransferSubmittedEvent event) {
+        log.info("Notificando donación recibida para orden id={} a {}", event.orderId(), event.userEmail());
+        Context ctx = new Context();
+        ctx.setVariable("orderId", event.orderId());
+        emailService.sendHtmlEmail(
+                event.userEmail(),
+                "Tu donación fue recibida — Donatech",
+                "donation-received-donor",
+                ctx
+        );
+    }
+
+    @RabbitListener(queues = "notification.transfer.approved")
+    public void handleTransferApproved(TransferResultEvent event) {
+        if (!event.approved()) return;
+        log.info("Notificando transferencia aprobada para orden id={} a {}", event.orderId(), event.recipientEmail());
+        Context ctx = new Context();
+        ctx.setVariable("orderId", event.orderId());
+        emailService.sendHtmlEmail(
+                event.recipientEmail(),
+                "Tu transferencia fue aprobada — Donatech",
+                "transfer-approved",
                 ctx
         );
     }

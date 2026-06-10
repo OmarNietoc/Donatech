@@ -1,8 +1,11 @@
 package com.donatech.catalog.service;
 
+import com.donatech.catalog.client.UsersClient;
+import com.donatech.catalog.client.UserStatusDto;
 import com.donatech.catalog.controller.response.MessageResponse;
 import com.donatech.catalog.dto.CampaignKitDto;
 import com.donatech.catalog.dto.CampaignRequestDto;
+import com.donatech.catalog.dto.response.CampaignResponseDto;
 import com.donatech.catalog.event.CampaignCreatedPublisher;
 import com.donatech.catalog.exception.ResourceNotFoundException;
 import com.donatech.catalog.model.Campaign;
@@ -36,34 +39,35 @@ class CampaignServiceTest {
     @Mock CampaignKitRepository campaignKitRepository;
     @Mock KitRepository kitRepository;
     @Mock CampaignCreatedPublisher campaignCreatedPublisher;
+    @Mock UsersClient usersClient;
 
     @InjectMocks CampaignService campaignService;
 
     @Test
     void getAll_returnsCampaigns() {
-        when(campaignRepository.findAll()).thenReturn(List.of(new Campaign()));
+        when(campaignRepository.findAll()).thenReturn(List.of(Campaign.builder().kits(new ArrayList<>()).build()));
 
-        List<Campaign> result = campaignService.getAll();
+        List<CampaignResponseDto> result = campaignService.getAll();
 
         assertThat(result).hasSize(1);
     }
 
     @Test
     void getAllActive_returnsOnlyActiveCampaigns() {
-        Campaign active = Campaign.builder().estado(CampaignStatus.ACTIVA).build();
+        Campaign active = Campaign.builder().estado(CampaignStatus.ACTIVA).kits(new ArrayList<>()).build();
         when(campaignRepository.findByEstado(CampaignStatus.ACTIVA)).thenReturn(List.of(active));
 
-        List<Campaign> result = campaignService.getAllActive();
+        List<CampaignResponseDto> result = campaignService.getAllActive();
 
         assertThat(result).allMatch(c -> c.getEstado() == CampaignStatus.ACTIVA);
     }
 
     @Test
     void getById_exists_returnsCampaign() {
-        Campaign campaign = Campaign.builder().id(1L).titulo("Campaña Terremoto").build();
+        Campaign campaign = Campaign.builder().id(1L).titulo("Campaña Terremoto").kits(new ArrayList<>()).build();
         when(campaignRepository.findById(1L)).thenReturn(Optional.of(campaign));
 
-        Campaign result = campaignService.getById(1L);
+        CampaignResponseDto result = campaignService.getById(1L);
 
         assertThat(result.getTitulo()).isEqualTo("Campaña Terremoto");
     }
@@ -86,6 +90,8 @@ class CampaignServiceTest {
         dto.setRegionId(1L);
         dto.setComunaId(1L);
 
+        when(usersClient.getUserById(1L)).thenReturn(new UserStatusDto(1L, 1));
+        when(campaignRepository.existsByBeneficiaryIdAndEstadoIn(any(), any())).thenReturn(false);
         when(campaignRepository.save(any())).thenAnswer(inv -> {
             Campaign c = inv.getArgument(0);
             c.setId(10L);

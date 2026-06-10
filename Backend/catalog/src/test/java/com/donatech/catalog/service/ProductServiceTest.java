@@ -2,6 +2,7 @@ package com.donatech.catalog.service;
 
 import com.donatech.catalog.controller.response.MessageResponse;
 import com.donatech.catalog.dto.ProductDto;
+import com.donatech.catalog.dto.response.ProductResponseDto;
 import com.donatech.catalog.model.Category;
 import com.donatech.catalog.model.Product;
 import com.donatech.catalog.model.Unit;
@@ -22,7 +23,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -42,18 +42,21 @@ class ProductServiceTest {
     @Mock
     private UnitService unitService;
 
+    @Mock
+    private ImageStorageService imageStorageService;
+
     @InjectMocks
     private ProductService productService;
 
     @Test
     void getProducts_WithCategoryAndUnit_ShouldDelegateToCombinedQuery() {
-        Page<Product> expected = new PageImpl<>(List.of(Product.builder().id("SKU-1").build()));
+        Page<Product> repoPage = new PageImpl<>(List.of(Product.builder().id("SKU-1").build()));
         when(productRepository.findByCategoriaIdAndUnidId(eq(5L), eq(7L), any(Pageable.class)))
-                .thenReturn(expected);
+                .thenReturn(repoPage);
 
-        Page<Product> result = productService.getProducts(0, 10, 5L, 7L);
+        Page<ProductResponseDto> result = productService.getProducts(0, 10, 5L, 7L);
 
-        assertSame(expected, result);
+        assertEquals(1, result.getTotalElements());
         verify(productRepository, times(1))
                 .findByCategoriaIdAndUnidId(eq(5L), eq(7L), any(Pageable.class));
     }
@@ -97,7 +100,6 @@ class ProductServiceTest {
                 .activo(1)
                 .categoria(Category.builder().id(1L).name("Old").build())
                 .unid(Unit.builder().id(1L).name("Old unit").build())
-                .imagen(null)
                 .build();
 
         ProductDto dto = buildProductDto();
@@ -154,7 +156,6 @@ class ProductServiceTest {
         dto.setStock(20);
         dto.setStockMinimo(5);
         dto.setActivo(1);
-        dto.setImagen(new byte[]{1, 2, 3});
         return dto;
     }
 }

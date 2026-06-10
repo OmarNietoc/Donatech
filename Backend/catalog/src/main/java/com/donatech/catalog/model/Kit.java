@@ -31,8 +31,8 @@ public class Kit {
     @Size(max = 1000)
     private String descripcion;
 
-    @Lob
-    private byte[] imagen;
+    @Column(name = "imagen_url", length = 500)
+    private String imagenUrl;
 
     @Column(nullable = false)
     @Builder.Default

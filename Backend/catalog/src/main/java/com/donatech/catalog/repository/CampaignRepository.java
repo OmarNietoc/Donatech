@@ -11,4 +11,5 @@ import java.util.List;
 public interface CampaignRepository extends JpaRepository<Campaign, Long> {
     List<Campaign> findByEstado(CampaignStatus estado);
     List<Campaign> findByBeneficiaryId(Long beneficiaryId);
+    boolean existsByBeneficiaryIdAndEstadoIn(Long beneficiaryId, List<CampaignStatus> estados);
 }

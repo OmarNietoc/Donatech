@@ -49,7 +49,5 @@ public class ProductDto {
     @NotNull(message = "El ID de la unidad es obligatorio")
     private Long unidadId;
 
-    private byte[] imagen;
-
     private com.donatech.catalog.model.Prioridad prioridad;
 }

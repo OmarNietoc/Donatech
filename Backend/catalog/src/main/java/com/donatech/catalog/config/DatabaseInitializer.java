@@ -7,11 +7,8 @@ import com.donatech.catalog.repository.CategoryRepository;
 import com.donatech.catalog.repository.ProductRepository;
 import com.donatech.catalog.repository.UnitRepository;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StreamUtils;
 
-import java.io.IOException;
 import java.util.Optional;
 
 @Component
@@ -118,14 +115,9 @@ public class DatabaseInitializer implements CommandLineRunner {
     private void crearProducto(String id, String nombre, String descripcion, Integer precio,
                                String imageName, String categoriaNombre, String unidadNombre) {
 
-        // Si el producto ya existe, no hacer nada (idempotente sin actualizar registros existentes)
-        if (productRepository.existsById(id)) {
-            // System.out.println("⏭️ Producto " + nombre + " ya existe. Saltando...");
-            return;
-        }
+        if (productRepository.existsById(id)) return;
 
         try {
-            // 2. Buscar Entidades Relacionadas (Categoria y Unidad)
             Optional<Category> categoriaOpt = categoryRepository.findByName(categoriaNombre);
             if (categoriaOpt.isEmpty()) {
                 System.err.println("⚠️ Categoría no encontrada: " + categoriaNombre);
@@ -138,20 +130,16 @@ public class DatabaseInitializer implements CommandLineRunner {
                 return;
             }
 
-            byte[] imageBytes = loadImageFromResources(imageName);
-
-            // 4. Construir y Guardar el Producto
             Product product = Product.builder()
                     .id(id)
                     .nombre(nombre)
                     .descripcion(descripcion)
                     .precio(precio)
-                    .stock(100)       // Requisito: Stock 100
-                    .stockMinimo(15)  // Requisito: Stock Mínimo 15
-                    .activo(1)        // Default activo
+                    .stock(100)
+                    .stockMinimo(15)
+                    .activo(1)
                     .categoria(categoriaOpt.get())
                     .unid(unitOpt.get())
-                    .imagen(imageBytes)
                     .build();
 
             productRepository.save(product);
@@ -163,21 +151,4 @@ public class DatabaseInitializer implements CommandLineRunner {
         }
     }
 
-    private byte[] loadImageFromResources(String imageName) {
-        // Primero busca en la carpeta img/products (donde están las imágenes reales)
-        String[] candidatePaths = {"img/products/" + imageName, "img/" + imageName};
-        for (String candidatePath : candidatePaths) {
-            try {
-                ClassPathResource imgFile = new ClassPathResource(candidatePath);
-                if (imgFile.exists()) {
-                    return StreamUtils.copyToByteArray(imgFile.getInputStream());
-                }
-            } catch (IOException e) {
-                System.err.println("❌ Error leyendo imagen " + imageName + " desde " + candidatePath + ": " + e.getMessage());
-            }
-        }
-
-        System.err.println("⚠️ Imagen no encontrada en resources/img/ ni img/products/: " + imageName);
-        return null;
-    }
 }

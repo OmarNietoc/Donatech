@@ -2,6 +2,7 @@ package com.donatech.catalog.service;
 
 import com.donatech.catalog.controller.response.MessageResponse;
 import com.donatech.catalog.dto.ProductDto;
+import com.donatech.catalog.dto.response.ProductResponseDto;
 import com.donatech.catalog.exception.ResourceNotFoundException;
 import com.donatech.catalog.model.Category;
 import com.donatech.catalog.model.Prioridad;
@@ -18,7 +19,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @Service
@@ -28,29 +31,51 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryService categoryService;
     private final UnitService unitService;
+    private final ImageStorageService imageStorageService;
 
-    public Page<Product> getProducts(Integer page, Integer size, Long categoryId, Long unitId) {
+    public Page<ProductResponseDto> getProducts(Integer page, Integer size, Long categoryId, Long unitId) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id").ascending());
-
+        Page<Product> products;
         if (categoryId != null && unitId != null) {
-            return productRepository.findByCategoriaIdAndUnidId(categoryId, unitId, pageable);
+            products = productRepository.findByCategoriaIdAndUnidId(categoryId, unitId, pageable);
         } else if (categoryId != null) {
-            return productRepository.findByCategoriaId(categoryId, pageable);
+            products = productRepository.findByCategoriaId(categoryId, pageable);
         } else if (unitId != null) {
-            return productRepository.findByUnidId(unitId, pageable);
+            products = productRepository.findByUnidId(unitId, pageable);
         } else {
-            return productRepository.findAll(pageable);
+            products = productRepository.findAll(pageable);
         }
+        return products.map(this::toDto);
     }
 
-
-    public Product getProductById(String id) {
-        return productRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + id));
+    public ProductResponseDto getProductById(String id) {
+        return toDto(productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + id)));
     }
 
+    private ProductResponseDto toDto(Product p) {
+        return ProductResponseDto.builder()
+                .id(p.getId())
+                .nombre(p.getNombre())
+                .descripcion(p.getDescripcion())
+                .precio(p.getPrecio())
+                .stock(p.getStock())
+                .stockMinimo(p.getStockMinimo())
+                .activo(p.getActivo())
+                .prioridad(p.getPrioridad())
+                .categoriaId(p.getCategoria() != null ? p.getCategoria().getId() : null)
+                .categoriaNombre(p.getCategoria() != null ? p.getCategoria().getName() : null)
+                .unidadId(p.getUnid() != null ? p.getUnid().getId() : null)
+                .unidadNombre(p.getUnid() != null ? p.getUnid().getName() : null)
+                .hasImage(p.getImagenUrl() != null)
+                .build();
+    }
 
     public ResponseEntity<?> createProduct(@Valid ProductDto dto) {
+        if (productRepository.existsById(dto.getId())) {
+            throw new com.donatech.catalog.exception.ConflictException(
+                    "Ya existe un producto con el ID '" + dto.getId() + "'. Usa un identificador diferente.");
+        }
         Category category = categoryService.getCategoryById(dto.getCategoriaId());
         Unit unit = unitService.getUnitById(dto.getUnidadId());
 
@@ -64,7 +89,6 @@ public class ProductService {
                 .activo(resolveActivo(dto.getActivo()))
                 .categoria(category)
                 .unid(unit)
-                .imagen(dto.getImagen())
                 .prioridad(dto.getPrioridad())
                 .build();
 
@@ -73,7 +97,8 @@ public class ProductService {
     }
 
     public ResponseEntity<MessageResponse> updateProduct(String id, ProductDto dto) {
-        Product product = getProductById(id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + id));
         Category category = categoryService.getCategoryById(dto.getCategoriaId());
         Unit unit = unitService.getUnitById(dto.getUnidadId());
 
@@ -85,7 +110,6 @@ public class ProductService {
         product.setActivo(resolveActivo(dto.getActivo()));
         product.setCategoria(category);
         product.setUnid(unit);
-        product.setImagen(dto.getImagen());
         product.setPrioridad(dto.getPrioridad());
 
         productRepository.save(product);
@@ -93,8 +117,41 @@ public class ProductService {
     }
 
     @Transactional
+    public ResponseEntity<MessageResponse> uploadImage(String id, MultipartFile file) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + id));
+        try {
+            String path = imageStorageService.store("products", id, file);
+            product.setImagenUrl(path);
+            productRepository.save(product);
+            return ResponseEntity.ok(new MessageResponse("Imagen actualizada."));
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError()
+                    .body(new MessageResponse("Error al guardar imagen: " + e.getMessage()));
+        }
+    }
+
+    public byte[] getImage(String id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + id));
+        if (product.getImagenUrl() == null) return null;
+        try {
+            return imageStorageService.load(product.getImagenUrl());
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    public String getImageContentType(String id) {
+        return productRepository.findById(id)
+                .map(p -> p.getImagenUrl() != null ? imageStorageService.detectContentType(p.getImagenUrl()) : "image/jpeg")
+                .orElse("image/jpeg");
+    }
+
+    @Transactional
     public Product deductStock(String productId, Integer quantity) {
-        Product product = getProductById(productId);
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + productId));
         int newStock = Math.max(0, product.getStock() - quantity);
         product.setStock(newStock);
         return productRepository.save(product);
@@ -109,7 +166,8 @@ public class ProductService {
     }
 
     public ResponseEntity<MessageResponse> deleteProduct(String id) {
-        Product product = getProductById(id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + id));
         productRepository.delete(product);
         return ResponseEntity.ok(new MessageResponse("Producto eliminado correctamente."));
     }

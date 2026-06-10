@@ -11,4 +11,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class MessageResponse {
     private String message;
+    private Long id;
+
+    public MessageResponse(String message) {
+        this.message = message;
+    }
 }

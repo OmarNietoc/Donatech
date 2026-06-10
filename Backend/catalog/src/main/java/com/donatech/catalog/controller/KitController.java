@@ -2,14 +2,16 @@ package com.donatech.catalog.controller;
 
 import com.donatech.catalog.controller.response.MessageResponse;
 import com.donatech.catalog.dto.KitDto;
-import com.donatech.catalog.model.Kit;
+import com.donatech.catalog.dto.response.KitResponseDto;
 import com.donatech.catalog.service.KitService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -23,14 +25,31 @@ public class KitController {
 
     @Operation(summary = "Listar todos los kits")
     @GetMapping
-    public ResponseEntity<List<Kit>> getAll() {
+    public ResponseEntity<List<KitResponseDto>> getAll() {
         return ResponseEntity.ok(kitService.getAll());
     }
 
     @Operation(summary = "Obtener kit por ID")
     @GetMapping("/{id}")
-    public ResponseEntity<Kit> getById(@PathVariable Long id) {
+    public ResponseEntity<KitResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(kitService.getById(id));
+    }
+
+    @Operation(summary = "Imagen de kit")
+    @GetMapping("/{id}/image")
+    public ResponseEntity<byte[]> getImage(@PathVariable Long id) {
+        byte[] bytes = kitService.getImage(id);
+        if (bytes == null || bytes.length == 0) return ResponseEntity.notFound().build();
+        String ct = kitService.getImageContentType(id);
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(ct)).body(bytes);
+    }
+
+    @Operation(summary = "Subir imagen de kit")
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<MessageResponse> uploadImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file) {
+        return kitService.uploadImage(id, file);
     }
 
     @Operation(summary = "Crear kit")

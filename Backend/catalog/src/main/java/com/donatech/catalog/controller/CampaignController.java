@@ -3,7 +3,7 @@ package com.donatech.catalog.controller;
 import com.donatech.catalog.controller.response.MessageResponse;
 import com.donatech.catalog.dto.CampaignKitDto;
 import com.donatech.catalog.dto.CampaignRequestDto;
-import com.donatech.catalog.model.Campaign;
+import com.donatech.catalog.dto.response.CampaignResponseDto;
 import com.donatech.catalog.service.CampaignService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,25 +24,25 @@ public class CampaignController {
 
     @Operation(summary = "Listar todas las campañas")
     @GetMapping
-    public ResponseEntity<List<Campaign>> getAll() {
+    public ResponseEntity<List<CampaignResponseDto>> getAll() {
         return ResponseEntity.ok(campaignService.getAll());
     }
 
     @Operation(summary = "Listar campañas activas — visibles para donantes")
     @GetMapping("/active")
-    public ResponseEntity<List<Campaign>> getAllActive() {
+    public ResponseEntity<List<CampaignResponseDto>> getAllActive() {
         return ResponseEntity.ok(campaignService.getAllActive());
     }
 
     @Operation(summary = "Campañas por beneficiario")
     @GetMapping("/by-beneficiary/{beneficiaryId}")
-    public ResponseEntity<List<Campaign>> getByBeneficiary(@PathVariable Long beneficiaryId) {
+    public ResponseEntity<List<CampaignResponseDto>> getByBeneficiary(@PathVariable Long beneficiaryId) {
         return ResponseEntity.ok(campaignService.getByBeneficiary(beneficiaryId));
     }
 
     @Operation(summary = "Obtener campaña por ID")
     @GetMapping("/{id}")
-    public ResponseEntity<Campaign> getById(@PathVariable Long id) {
+    public ResponseEntity<CampaignResponseDto> getById(@PathVariable Long id) {
         return ResponseEntity.ok(campaignService.getById(id));
     }
 

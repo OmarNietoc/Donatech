@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Tu transferencia fue aprobada</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center" style="padding:40px 0;">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="background:#1565c0;padding:24px 32px;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;">Donatech</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 16px;color:#2e7d32;font-size:20px;">¡Transferencia aprobada!</h2>
+              <p style="color:#555;font-size:15px;line-height:1.6;">
+                El comprobante de pago de tu donación <strong>#<span th:text="${orderId}"></span></strong> ha sido verificado y aprobado.
+              </p>
+              <table width="100%" cellpadding="12" cellspacing="0" style="background:#e8f5e9;border-radius:6px;margin:24px 0;">
+                <tr>
+                  <td>
+                    <p style="margin:0;color:#2e7d32;font-size:14px;">
+                      Los kits están siendo preparados para su envío al beneficiario.<br>
+                      Recibirás una notificación cuando tu donación esté en camino.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              <p style="color:#555;font-size:14px;">
+                Gracias por tu generosidad. Tu contribución hace la diferencia.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f4f4f4;padding:16px 32px;text-align:center;">
+              <p style="margin:0;color:#aaa;font-size:12px;">Donatech — Hub Logístico de Donaciones</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

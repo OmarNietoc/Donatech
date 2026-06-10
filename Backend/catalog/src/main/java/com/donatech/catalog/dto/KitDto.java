@@ -16,13 +16,11 @@ import java.util.List;
 public class KitDto {
 
     @NotBlank(message = "El nombre del kit es obligatorio")
-    @Size(min = 3, max = 120)
+    @Size(min = 3, max = 120, message = "El nombre debe tener entre 3 y 120 caracteres")
     private String nombre;
 
-    @Size(max = 1000)
+    @Size(max = 1000, message = "La descripción no puede superar los 1000 caracteres")
     private String descripcion;
-
-    private byte[] imagen;
 
     private Integer activo;
 
