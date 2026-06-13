@@ -5,11 +5,14 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -36,6 +39,41 @@ public class EmailService {
             helper.setText(templateEngine.process("email/" + templateName, ctx), true);
             mailSender.send(message);
             log.info("Email enviado a {} — asunto: {}", to, subject);
+        } catch (MessagingException | RuntimeException e) {
+            log.error("Error al enviar email a {}: {}", to, e.getMessage());
+        }
+    }
+
+    /**
+     * Envía un correo HTML con imágenes embebidas inline (cid:imgN, N desde 0).
+     * Cada imagen se referencia en la plantilla como <img th:src="'cid:img' + ${i}">.
+     */
+    public void sendHtmlEmailWithInlineImages(String to, String subject, String templateName,
+                                              Context ctx, List<byte[]> images) {
+        if (to == null || to.isBlank()) {
+            log.warn("Email no enviado — destinatario nulo para asunto: {}", subject);
+            return;
+        }
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            // multipart=true: requerido para adjuntar/embeber contenido
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(from);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(templateEngine.process("email/" + templateName, ctx), true);
+
+            if (images != null) {
+                for (int i = 0; i < images.size(); i++) {
+                    byte[] data = images.get(i);
+                    if (data == null || data.length == 0) continue;
+                    helper.addInline("img" + i, new ByteArrayResource(data), "image/jpeg");
+                }
+            }
+
+            mailSender.send(message);
+            log.info("Email con {} imágenes enviado a {} — asunto: {}",
+                    images != null ? images.size() : 0, to, subject);
         } catch (MessagingException | RuntimeException e) {
             log.error("Error al enviar email a {}: {}", to, e.getMessage());
         }

@@ -134,7 +134,7 @@ class OrderServiceTest {
 
     @Test
     void updateDonationStatusById_validTransition_updatesAndCreatesHistory() {
-        Order order = baseOrder(1L, DonationStatus.INGRESADA);
+        Order order = baseOrder(1L, DonationStatus.EN_VALIDACION_TRANSFERENCIA);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(orderRepository.save(any())).thenReturn(order);
         when(trackingHistoryRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -144,12 +144,23 @@ class OrderServiceTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(order.getEstado()).isEqualTo(DonationStatus.EN_PREPARACION);
         verify(trackingHistoryRepository).save(any(TrackingHistory.class));
-        verify(donationEventPublisher).publishDonationConfirmed(any());
+        // donation.confirmed solo se publica desde TransferValidatedConsumer
+        verify(donationEventPublisher, never()).publishDonationConfirmed(any());
     }
 
     @Test
-    void uploadTransferProof_storesBytesAndSetsIngresada() {
-        Order order = baseOrder(1L, DonationStatus.DRAFT);
+    void updateDonationStatusById_invalidTransition_throwsException() {
+        Order order = baseOrder(1L, DonationStatus.ENTREGADA);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.updateDonationStatusById(1L, DonationStatus.DRAFT, 10L))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Transición de estado no permitida");
+    }
+
+    @Test
+    void uploadTransferProof_storesBytesAndSetsEnValidacion() {
+        Order order = baseOrder(1L, DonationStatus.INGRESADA);
         when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
         when(orderRepository.save(any())).thenReturn(order);
 
@@ -157,9 +168,35 @@ class OrderServiceTest {
         ResponseEntity<MessageResponse> response = orderService.uploadTransferProof(1L, proof);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(order.getEstado()).isEqualTo(DonationStatus.INGRESADA);
+        assertThat(order.getEstado()).isEqualTo(DonationStatus.EN_VALIDACION_TRANSFERENCIA);
         assertThat(order.getTransferProof()).isEqualTo(proof);
         verify(donationEventPublisher).publishTransferSubmitted(any());
+    }
+
+    @Test
+    void cancelOrder_afterStockDeducted_publishesDonationCancelled() {
+        Order order = baseOrder(1L, DonationStatus.EN_PREPARACION);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any())).thenReturn(order);
+
+        ResponseEntity<MessageResponse> response = orderService.cancelOrder(1L, "ya no puedo donar", 5L);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(order.getEstado()).isEqualTo(DonationStatus.CANCELADA);
+        assertThat(order.getRejectionReason()).isEqualTo("ya no puedo donar");
+        verify(donationEventPublisher).publishDonationCancelled(any());
+    }
+
+    @Test
+    void cancelOrder_beforeStockDeducted_doesNotPublishRestore() {
+        Order order = baseOrder(1L, DonationStatus.INGRESADA);
+        when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any())).thenReturn(order);
+
+        orderService.cancelOrder(1L, null, null);
+
+        assertThat(order.getEstado()).isEqualTo(DonationStatus.CANCELADA);
+        verify(donationEventPublisher, never()).publishDonationCancelled(any());
     }
 
     @Test

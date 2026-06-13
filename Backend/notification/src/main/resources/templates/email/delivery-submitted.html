@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Tu donación fue entregada</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center" style="padding:40px 0;">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="background:#1565c0;padding:24px 32px;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;">Donatech</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 16px;color:#ef6c00;font-size:20px;">¡Tu donación fue entregada!</h2>
+              <p style="color:#555;font-size:15px;line-height:1.6;">
+                Tu donación <strong>#<span th:text="${orderId}"></span></strong> llegó al beneficiario y el equipo
+                de terreno subió la evidencia de entrega (fotografía y documento firmado).
+              </p>
+              <table width="100%" cellpadding="12" cellspacing="0" style="background:#fff3e0;border-radius:6px;margin:24px 0;">
+                <tr>
+                  <td>
+                    <p style="margin:0;color:#ef6c00;font-size:14px;">
+                      La entrega está siendo verificada por nuestro equipo.<br>
+                      Recibirás un último correo cuando la entrega quede confirmada.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              <p style="color:#555;font-size:14px;">
+                Gracias por tu generosidad. Tu contribución hace la diferencia.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f4f4f4;padding:16px 32px;text-align:center;">
+              <p style="margin:0;color:#aaa;font-size:12px;">Donatech — Hub Logístico de Donaciones</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

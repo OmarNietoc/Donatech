@@ -32,6 +32,8 @@ public class SecurityConfig {
                                 "/webjars/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/config/transfer").permitAll()
+                        // Descarga interna de imágenes de agradecimiento (notification ms vía Feign, sin JWT)
+                        .requestMatchers(HttpMethod.GET, "/api/orders/*/thank-you-image/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(gatewayAuthFilter(), UsernamePasswordAuthenticationFilter.class);

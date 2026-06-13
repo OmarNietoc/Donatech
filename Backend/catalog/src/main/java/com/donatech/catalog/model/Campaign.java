@@ -73,4 +73,8 @@ public class Campaign {
     @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<CampaignKit> kits = new ArrayList<>();
+
+    @OneToMany(mappedBy = "campaign", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<CampaignImage> images = new ArrayList<>();
 }

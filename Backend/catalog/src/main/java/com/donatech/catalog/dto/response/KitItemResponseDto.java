@@ -11,4 +11,5 @@ public class KitItemResponseDto {
     String productNombre;
     Integer productPrecio;
     Integer cantidadRequerida;
+    Boolean productHasImage;
 }

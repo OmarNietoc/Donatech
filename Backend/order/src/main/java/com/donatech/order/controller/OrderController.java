@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,7 +25,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.donatech.order.dto.AddItemToOrderRequest;
+import com.donatech.order.dto.AssignCourierRequest;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -37,8 +40,9 @@ public class OrderController {
 
     private final OrderService orderService;
 
-    @Operation(summary = "Listar órdenes", description = "Obtiene todas las órdenes registradas.")
+    @Operation(summary = "Listar órdenes", description = "Obtiene todas las órdenes registradas. Solo personal autorizado.")
     @ApiResponse(responseCode = "200", description = "Órdenes listadas correctamente")
+    @PreAuthorize("hasAnyRole('ADMIN','VOLUNTARIO')")
     @GetMapping
     public ResponseEntity<List<OrderResponse>> getAllOrders() {
         return orderService.getAllOrders();
@@ -117,6 +121,7 @@ public class OrderController {
             @ApiResponse(responseCode = "400", description = "Estado inválido"),
             @ApiResponse(responseCode = "404", description = "Orden no encontrada")
     })
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/status")
     public ResponseEntity<MessageResponse> updateDonationStatus(
             @PathVariable Long id,
@@ -146,31 +151,75 @@ public class OrderController {
     }
 
     @Operation(summary = "Subir comprobante de transferencia",
-            description = "Adjunta el comprobante bancario y cambia el estado a INGRESADA.")
+            description = "Adjunta el comprobante bancario y cambia el estado a EN_VALIDACION_TRANSFERENCIA.")
     @ApiResponse(responseCode = "200", description = "Comprobante recibido")
     @PostMapping(value = "/{id}/transfer-proof", consumes = "multipart/form-data")
     public ResponseEntity<MessageResponse> uploadTransferProof(
             @PathVariable Long id,
-            @RequestParam("file") MultipartFile file) throws IOException {
-        return orderService.uploadTransferProof(id, file.getBytes());
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "X-User-Email", defaultValue = "unknown") String uploaderEmail) throws IOException {
+        return orderService.uploadTransferProof(id, file, uploaderEmail);
+    }
+
+    @Operation(summary = "Descargar comprobante de transferencia")
+    @ApiResponse(responseCode = "200", description = "Archivo del comprobante")
+    @GetMapping("/{id}/transfer-proof")
+    public ResponseEntity<byte[]> getTransferProof(@PathVariable Long id) throws IOException {
+        return orderService.getTransferProof(id);
+    }
+
+    @Operation(summary = "Asignar transportista",
+            description = "Asigna nombre/contacto del transportista. Cambia estado EN_PREPARACION → ASIGNADA_ENVIO.")
+    @ApiResponse(responseCode = "200", description = "Transportista asignado")
+    @PreAuthorize("hasAnyRole('ADMIN','VOLUNTARIO')")
+    @PatchMapping("/{id}/assign-courier")
+    public ResponseEntity<MessageResponse> assignCourier(
+            @PathVariable Long id,
+            @Valid @RequestBody AssignCourierRequest body,
+            @RequestParam(required = false) Long changedById) {
+        return orderService.assignCourier(id, body.getTransportistaNombre(), body.getTransportistaContacto(), changedById);
+    }
+
+    @Operation(summary = "Marcar en camino",
+            description = "El transportista entra en ruta. Cambia estado ASIGNADA_ENVIO → EN_CAMINO.")
+    @ApiResponse(responseCode = "200", description = "En camino")
+    @PreAuthorize("hasAnyRole('ADMIN','VOLUNTARIO')")
+    @PatchMapping("/{id}/in-transit")
+    public ResponseEntity<MessageResponse> markInTransit(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long changedById) {
+        return orderService.markInTransit(id, changedById);
     }
 
     @Operation(summary = "Subir evidencia de entrega",
-            description = "Transportista sube foto y documento firmado. Cambia estado a PENDIENTE_CONFIRMACION.")
+            description = "Transportista sube foto y documento firmado. Cambia estado EN_CAMINO → PENDIENTE_CONFIRMACION.")
     @ApiResponse(responseCode = "200", description = "Evidencia recibida")
+    @PreAuthorize("hasAnyRole('ADMIN','VOLUNTARIO')")
     @PostMapping(value = "/{id}/delivery-proof", consumes = "multipart/form-data")
     public ResponseEntity<MessageResponse> uploadDeliveryProof(
             @PathVariable Long id,
             @RequestParam(value = "photo", required = false) MultipartFile photo,
-            @RequestParam(value = "document", required = false) MultipartFile document) throws IOException {
-        byte[] photoBytes = (photo != null) ? photo.getBytes() : null;
-        byte[] docBytes = (document != null) ? document.getBytes() : null;
-        return orderService.uploadDeliveryProof(id, photoBytes, docBytes);
+            @RequestParam(value = "document", required = false) MultipartFile document,
+            @RequestHeader(value = "X-User-Email", defaultValue = "unknown") String uploaderEmail) throws IOException {
+        return orderService.uploadDeliveryProof(id, photo, document, uploaderEmail);
+    }
+
+    @Operation(summary = "Descargar foto de entrega")
+    @GetMapping("/{id}/delivery-photo")
+    public ResponseEntity<byte[]> getDeliveryPhoto(@PathVariable Long id) throws IOException {
+        return orderService.getDeliveryPhoto(id);
+    }
+
+    @Operation(summary = "Descargar documento de entrega")
+    @GetMapping("/{id}/delivery-document")
+    public ResponseEntity<byte[]> getDeliveryDocument(@PathVariable Long id) throws IOException {
+        return orderService.getDeliveryDocument(id);
     }
 
     @Operation(summary = "Confirmar entrega",
             description = "Admin confirma que la foto coincide. Cambia estado a ENTREGADA.")
     @ApiResponse(responseCode = "200", description = "Entrega confirmada")
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/confirm-delivery")
     public ResponseEntity<MessageResponse> confirmDelivery(
             @PathVariable Long id,
@@ -178,9 +227,44 @@ public class OrderController {
         return orderService.confirmDelivery(id, confirmedById);
     }
 
+    @Operation(summary = "Cancelar donación",
+            description = "El donante (dueño) o un administrador cancela la orden. " +
+                    "Si el stock ya fue descontado, se publica donation.cancelled para restaurarlo.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Donación cancelada"),
+            @ApiResponse(responseCode = "400", description = "El estado actual no permite cancelar"),
+            @ApiResponse(responseCode = "404", description = "Orden no encontrada")
+    })
+    @PatchMapping("/{id}/cancel")
+    public ResponseEntity<MessageResponse> cancelOrder(
+            @PathVariable Long id,
+            @RequestParam(required = false) String motivo,
+            @RequestParam(required = false) Long changedById) {
+        return orderService.cancelOrder(id, motivo, changedById);
+    }
+
     @Operation(summary = "Dashboard — resumen de órdenes por estado y zona")
     @GetMapping("/dashboard/summary")
     public ResponseEntity<DashboardResponse> getDashboard() {
         return orderService.getDashboard();
+    }
+
+    @Operation(summary = "Agradecer al donante",
+            description = "El beneficiario redacta un mensaje (máx 600) con imágenes para agradecer. " +
+                    "Solo disponible cuando la donación está ENTREGADA.")
+    @PreAuthorize("hasAnyRole('ADMIN','VOLUNTARIO','BENEFICIARIO','ORGANIZACION')")
+    @PostMapping(value = "/{id}/thank-you", consumes = "multipart/form-data")
+    public ResponseEntity<MessageResponse> sendThankYou(
+            @PathVariable Long id,
+            @RequestParam("message") String message,
+            @RequestParam(value = "images", required = false) MultipartFile[] images,
+            @RequestHeader(value = "X-User-Email", required = false) String callerEmail) throws IOException {
+        return orderService.sendThankYou(id, message, images, callerEmail);
+    }
+
+    @Operation(summary = "Descargar imagen de agradecimiento (uso interno notification ms)")
+    @GetMapping("/{id}/thank-you-image/{index}")
+    public ResponseEntity<byte[]> getThankYouImage(@PathVariable Long id, @PathVariable int index) throws IOException {
+        return orderService.getThankYouImage(id, index);
     }
 }

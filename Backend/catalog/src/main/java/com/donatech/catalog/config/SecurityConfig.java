@@ -3,6 +3,7 @@ package com.donatech.catalog.config;
 import com.donatech.catalog.security.GatewayAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -24,22 +25,31 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-
                         .requestMatchers(
-                                "/api/products",
-                                "/api/products/**",
-                                "/api/categories",
-                                "/api/categories/**",
-                                "/api/units",
-                                "/api/units/**",
-                                "/api/campaigns",
-                                "/api/campaigns/**",
                                 "/v3/api-docs",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/webjars/**"
                         ).permitAll()
+                        // Lectura pública del catálogo y campañas
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/products", "/api/products/**",
+                                "/api/categories", "/api/categories/**",
+                                "/api/units", "/api/units/**",
+                                "/api/campaigns", "/api/campaigns/**",
+                                "/api/kits", "/api/kits/**"
+                        ).permitAll()
+                        // Escritura de campañas: organizaciones/beneficiarios crean, admin gestiona
+                        .requestMatchers("/api/campaigns", "/api/campaigns/**")
+                        .hasAnyRole("ORGANIZACION", "BENEFICIARIO", "ADMIN")
+                        // Escritura de catálogo (productos, kits, categorías, unidades): solo admin
+                        .requestMatchers(
+                                "/api/products", "/api/products/**",
+                                "/api/categories", "/api/categories/**",
+                                "/api/units", "/api/units/**",
+                                "/api/kits", "/api/kits/**"
+                        ).hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(gatewayAuthFilter(), UsernamePasswordAuthenticationFilter.class);

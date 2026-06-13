@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Tu ayuda está en camino</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center" style="padding:40px 0;">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="background:#1565c0;padding:24px 32px;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;">Donatech 📦</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 16px;color:#1565c0;font-size:20px;">¡Tu ayuda está en camino!</h2>
+              <p style="color:#555;font-size:15px;line-height:1.6;">
+                Hola <strong th:text="${beneficiaryName}">beneficiario</strong>, está en camino tu kit
+                <strong th:text="${kitNames}">kits</strong>. Será entregado en
+                <strong th:text="${fechaEstimada}">1 día hábil</strong> en tu domicilio:
+              </p>
+
+              <table width="100%" cellpadding="14" cellspacing="0" style="background:#e3f2fd;border-radius:8px;margin:20px 0;">
+                <tr>
+                  <td>
+                    <p style="margin:0 0 6px;color:#0d47a1;font-size:15px;">
+                      📍 <strong th:text="${direccion}">Dirección</strong>
+                    </p>
+                    <p style="margin:0;color:#0d47a1;font-size:14px;">
+                      📞 Serás contactado al teléfono registrado en tu perfil:
+                      <strong th:text="${telefono}">—</strong>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <table width="100%" cellpadding="12" cellspacing="0" style="background:#fff8e1;border-radius:8px;margin:16px 0;">
+                <tr>
+                  <td>
+                    <p style="margin:0;color:#8d6e63;font-size:14px;line-height:1.6;">
+                      ⚠️ <strong>Debes estar presente</strong> al momento de la entrega. Si no podrás
+                      estar, por favor notifícalo a soporte con anticipación.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="text-align:center;margin:24px 0;">
+                <a th:href="${supportLink}"
+                   style="display:inline-block;background:#1565c0;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:bold;">
+                  Notificar a soporte
+                </a>
+              </div>
+
+              <p style="color:#888;font-size:13px;">Orden #<span th:text="${orderId}"></span> — Gracias por confiar en Donatech.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f4f4f4;padding:16px 32px;text-align:center;">
+              <p style="margin:0;color:#aaa;font-size:12px;">Donatech — Hub Logístico de Donaciones</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

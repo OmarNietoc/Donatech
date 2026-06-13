@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mensaje de agradecimiento</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center" style="padding:40px 0;">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="background:#1565c0;padding:24px 32px;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;">Donatech 💙</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 16px;color:#1565c0;font-size:20px;">
+                <span th:text="${beneficiaryName}">El beneficiario</span> quiere agradecerte
+              </h2>
+              <p style="color:#555;font-size:15px;line-height:1.6;">
+                Hola <strong th:text="${donorName}">donante</strong>, gracias a tu donación se hizo posible esta ayuda.
+                El beneficiario te dejó este mensaje:
+              </p>
+
+              <table width="100%" cellpadding="20" cellspacing="0" style="background:#e3f2fd;border-radius:8px;margin:24px 0;">
+                <tr>
+                  <td>
+                    <p style="margin:0;color:#0d47a1;font-size:16px;line-height:1.7;white-space:pre-line;"
+                       th:text="${message}">Mensaje del beneficiario</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Imágenes adjuntas embebidas (cid:img0, cid:img1, ...) -->
+              <div th:if="${imageIndexes != null and !imageIndexes.isEmpty()}" style="margin:16px 0;">
+                <p style="color:#777;font-size:13px;margin:0 0 8px;">Imágenes compartidas:</p>
+                <img th:each="i : ${imageIndexes}"
+                     th:src="'cid:img' + ${i}"
+                     alt="Imagen del beneficiario"
+                     style="max-width:100%;border-radius:8px;margin-bottom:12px;display:block;" />
+              </div>
+
+              <p style="color:#555;font-size:14px;margin-top:24px;">
+                Tu generosidad hizo la diferencia. ¡Gracias por ser parte de Donatech!
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f4f4f4;padding:16px 32px;text-align:center;">
+              <p style="margin:0;color:#aaa;font-size:12px;">Donatech — Hub Logístico de Donaciones</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

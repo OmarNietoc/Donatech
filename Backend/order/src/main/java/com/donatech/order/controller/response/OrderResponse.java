@@ -19,11 +19,27 @@ public class OrderResponse {
 
     private Long id;
     private String userEmail;
+    private String donorName;
     private DonationStatus estado;
     private CouponResponse coupon;
     private Integer discountApplied;
     private Integer finalPrice;
     private LocalDateTime orderDate;
+    private Long campaignId;
+    private String campaignTitulo;
+    private Long beneficiaryId;
+    private String beneficiaryName;
+    private Long zonaCatastrofeId;
+    private String rejectionReason;
+    private LocalDateTime deliveryConfirmedAt;
+    private String transferProofUrl;
+    private String transportistaNombre;
+    private String transportistaContacto;
+    private LocalDateTime courierAssignedAt;
+    private String deliveryPhotoUrl;
+    private String deliveryDocumentUrl;
+    private String thankYouMessage;
+    private LocalDateTime thankYouSentAt;
     private List<OrderItem> items;
 
 }

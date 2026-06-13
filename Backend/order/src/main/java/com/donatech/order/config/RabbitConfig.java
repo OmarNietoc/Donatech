@@ -41,6 +41,14 @@ public class RabbitConfig {
         return BindingBuilder.bind(transferValidatedQueue).to(donatechExchange).with("transfer.validated");
     }
 
+    // transfer.rejected también enruta al mismo queue: el consumer distingue por event.approved()
+    // y mueve la orden a RECHAZADA. Sin este binding el rechazo se descarta y la orden
+    // queda atascada en EN_VALIDACION_TRANSFERENCIA.
+    @Bean
+    public Binding transferRejectedBinding(Queue transferValidatedQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(transferValidatedQueue).to(donatechExchange).with("transfer.rejected");
+    }
+
     @Bean
     public Jackson2JsonMessageConverter jsonMessageConverter() {
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter();

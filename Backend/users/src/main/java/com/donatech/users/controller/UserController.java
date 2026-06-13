@@ -22,8 +22,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import com.donatech.users.repository.UserRepository;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -133,5 +135,21 @@ public class UserController {
         return ResponseEntity.ok(new MessageResponse("Estado del usuario actualizado correctamente."));
     }
 
+    @Operation(summary = "Subir avatar de usuario")
+    @PostMapping(value = "/{id}/avatar", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('ADMIN') or #id == authentication.principal.id")
+    public ResponseEntity<MessageResponse> uploadAvatar(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "X-User-Email", defaultValue = "unknown") String uploaderEmail) throws IOException {
+        userService.uploadAvatar(id, file, uploaderEmail);
+        return ResponseEntity.ok(new MessageResponse("Avatar actualizado correctamente."));
+    }
+
+    @Operation(summary = "Obtener avatar de usuario")
+    @GetMapping("/{id}/avatar")
+    public ResponseEntity<byte[]> getAvatar(@PathVariable Long id) throws IOException {
+        return userService.getAvatar(id);
+    }
 
 }

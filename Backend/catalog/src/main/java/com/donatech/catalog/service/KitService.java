@@ -51,6 +51,7 @@ public class KitService {
                 .productNombre(i.getProduct() != null ? i.getProduct().getNombre() : null)
                 .productPrecio(i.getProduct() != null ? i.getProduct().getPrecio() : null)
                 .cantidadRequerida(i.getCantidadRequerida())
+                .productHasImage(i.getProduct() != null && i.getProduct().getImagenUrl() != null)
                 .build()).toList();
 
         return KitResponseDto.builder()

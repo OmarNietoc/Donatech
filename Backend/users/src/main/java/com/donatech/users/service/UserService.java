@@ -10,10 +10,13 @@ import com.donatech.users.repository.ComunaRepository;
 import com.donatech.users.repository.RegionRepository;
 import com.donatech.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,12 +25,10 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
-
     private final RoleService roleService;
-
     private final ComunaRepository comunaRepository;
-
     private final RegionRepository regionRepository;
+    private final ImageStorageService imageStorageService;
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -123,6 +124,29 @@ public class UserService {
         User user = getUserById(id);
         user.setStatus(status);
         userRepository.save(user);
+    }
+
+    public String uploadAvatar(Long id, MultipartFile file, String uploaderEmail) throws IOException {
+        User user = getUserById(id);
+        if (user.getAvatarUrl() != null) {
+            imageStorageService.delete(user.getAvatarUrl());
+        }
+        String url = imageStorageService.store("users", uploaderEmail, file);
+        user.setAvatarUrl(url);
+        userRepository.save(user);
+        return url;
+    }
+
+    public ResponseEntity<byte[]> getAvatar(Long id) throws IOException {
+        User user = getUserById(id);
+        if (user.getAvatarUrl() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        byte[] bytes = imageStorageService.load(user.getAvatarUrl());
+        String contentType = imageStorageService.detectContentType(user.getAvatarUrl());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, contentType)
+                .body(bytes);
     }
 
 }

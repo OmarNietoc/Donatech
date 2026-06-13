@@ -9,6 +9,9 @@ spring:
     port: 5672
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASS:guest}
+    listener:
+      simple:
+        default-requeue-rejected: false
   datasource:
     url: ${DB_URL}
     username: ${CATALOG_DB_USER:catalog_user}

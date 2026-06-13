@@ -82,6 +82,46 @@ public class RabbitConfig {
     }
 
     @Bean
+    public Queue deliverySubmittedQueue() {
+        return new Queue("notification.delivery.submitted", true);
+    }
+
+    @Bean
+    public Binding deliverySubmittedBinding(Queue deliverySubmittedQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(deliverySubmittedQueue).to(donatechExchange).with("delivery.submitted");
+    }
+
+    @Bean
+    public Queue orderDeliveredQueue() {
+        return new Queue("notification.order.delivered", true);
+    }
+
+    @Bean
+    public Binding orderDeliveredBinding(Queue orderDeliveredQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(orderDeliveredQueue).to(donatechExchange).with("order.delivered");
+    }
+
+    @Bean
+    public Queue beneficiaryThankYouQueue() {
+        return new Queue("notification.beneficiary.thank-you", true);
+    }
+
+    @Bean
+    public Binding beneficiaryThankYouBinding(Queue beneficiaryThankYouQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(beneficiaryThankYouQueue).to(donatechExchange).with("beneficiary.thank-you");
+    }
+
+    @Bean
+    public Queue deliveryIncomingQueue() {
+        return new Queue("notification.delivery.incoming", true);
+    }
+
+    @Bean
+    public Binding deliveryIncomingBinding(Queue deliveryIncomingQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(deliveryIncomingQueue).to(donatechExchange).with("delivery.incoming");
+    }
+
+    @Bean
     public Jackson2JsonMessageConverter jsonMessageConverter() {
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter();
         DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();

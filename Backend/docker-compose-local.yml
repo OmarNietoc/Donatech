@@ -98,6 +98,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    volumes:
+      - users-images-data:/app/images
 
   catalog-service:
     build:
@@ -144,6 +146,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    volumes:
+      - order-images-data:/app/images
 
   supports-service:
     build:
@@ -229,3 +233,5 @@ services:
 volumes:
   postgres-data-local:
   catalog-images-data:
+  order-images-data:
+  users-images-data:

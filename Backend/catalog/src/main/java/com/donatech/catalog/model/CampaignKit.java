@@ -32,7 +32,14 @@ public class CampaignKit {
     @Column(name = "cantidad_necesaria", nullable = false)
     private Integer cantidadNecesaria;
 
+    // Recibidos: incrementa al confirmar la donación (estado EN_PREPARACION)
     @Column(name = "cantidad_fulfilled", nullable = false)
     @Builder.Default
     private Integer cantidadFulfilled = 0;
+
+    // Entregados: incrementa al confirmar la entrega (estado ENTREGADA)
+    // columnDefinition con default 0: permite el ALTER en tablas ya pobladas (ddl-auto update)
+    @Column(name = "cantidad_entregada", nullable = false, columnDefinition = "integer default 0")
+    @Builder.Default
+    private Integer cantidadEntregada = 0;
 }

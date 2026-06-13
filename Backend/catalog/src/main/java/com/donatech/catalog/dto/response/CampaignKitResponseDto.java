@@ -12,4 +12,5 @@ public class CampaignKitResponseDto {
     Integer kitPrecioEstimado;
     Integer cantidadNecesaria;
     Integer cantidadFulfilled;
+    Integer cantidadEntregada;
 }

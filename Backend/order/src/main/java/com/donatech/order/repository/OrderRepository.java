@@ -18,4 +18,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByBeneficiaryId(Long beneficiaryId);
 
     List<Order> findByZonaCatastrofeId(Long zonaCatastrofeId);
+
+    List<Order> findByCampaignId(Long campaignId);
+
+    List<Order> findByCampaignIdAndEstadoIn(Long campaignId, java.util.Collection<DonationStatus> estados);
 }

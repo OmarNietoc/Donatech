@@ -2,14 +2,17 @@ package com.donatech.users.controller;
 
 import com.donatech.users.dto.BeneficiaryDto;
 import com.donatech.users.dto.CompanyDetailsDto;
+import com.donatech.users.dto.ContactDto;
 import com.donatech.users.dto.CreateUserInternalDto;
 import com.donatech.users.dto.UserCredentialsDto;
+import com.donatech.users.dto.UserSummaryDto;
 import com.donatech.users.exception.ConflictException;
 import com.donatech.users.exception.ResourceNotFoundException;
 import com.donatech.users.model.Beneficiary;
 import com.donatech.users.model.Region;
 import com.donatech.users.model.Role;
 import com.donatech.users.model.User;
+import com.donatech.users.repository.BeneficiaryRepository;
 import com.donatech.users.repository.ComunaRepository;
 import com.donatech.users.repository.RegionRepository;
 import com.donatech.users.repository.RoleRepository;
@@ -32,6 +35,7 @@ public class InternalUserController {
     private final RoleRepository roleRepository;
     private final RegionRepository regionRepository;
     private final ComunaRepository comunaRepository;
+    private final BeneficiaryRepository beneficiaryRepository;
     private final BeneficiaryService beneficiaryService;
     private final com.donatech.users.service.CompanyDetailsService companyDetailsService;
 
@@ -40,6 +44,35 @@ public class InternalUserController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + email));
         return ResponseEntity.ok(toCredentialsDto(user));
+    }
+
+    @GetMapping("/by-email")
+    public ResponseEntity<UserSummaryDto> getSummaryByEmail(@RequestParam String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + email));
+        return ResponseEntity.ok(toSummaryDto(user));
+    }
+
+    @GetMapping("/by-id/{id}")
+    public ResponseEntity<UserSummaryDto> getSummaryById(@PathVariable Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + id));
+        return ResponseEntity.ok(toSummaryDto(user));
+    }
+
+    private UserSummaryDto toSummaryDto(User user) {
+        return UserSummaryDto.of(user.getId(), user.getName(), user.getEmail(), user.getStatus());
+    }
+
+    @GetMapping("/contact/{id}")
+    public ResponseEntity<ContactDto> getContact(@PathVariable Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + id));
+        String direccion = beneficiaryRepository.findByUserId(id)
+                .map(Beneficiary::getDireccionEntrega)
+                .orElse(null);
+        return ResponseEntity.ok(new ContactDto(
+                user.getId(), user.getName(), user.getEmail(), user.getPhone(), direccion));
     }
 
     @PostMapping("/create")

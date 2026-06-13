@@ -48,10 +48,13 @@ public class User {
     @Max(value = 1, message = "El 'status' debe ser 1 o 0")
     private Integer status;
 
-    // Imagen de perfil (nullable)
+    // Imagen de perfil legacy (BLOB — no usar en nuevos flujos)
     @Lob
     @Column(name = "imagen", nullable = true)
     private byte[] imagen;
+
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
 
     // Phone number (nullable)
     @Column(name = "phone", nullable = true)

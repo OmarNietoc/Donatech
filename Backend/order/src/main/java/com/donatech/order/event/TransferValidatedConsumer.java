@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -21,6 +22,9 @@ public class TransferValidatedConsumer {
     private final TrackingHistoryRepository trackingHistoryRepository;
     private final DonationEventPublisher donationEventPublisher;
 
+    // @Transactional mantiene la sesión Hibernate abierta: order.getItems() es LAZY
+    // y fuera de una transacción lanza LazyInitializationException (requeue infinito)
+    @Transactional
     @RabbitListener(queues = "order.transfer.validated")
     public void handleTransferValidated(TransferValidatedEvent event) {
         log.info("Recibido transfer.validated para orden id={}, aprobado={}", event.orderId(), event.approved());
@@ -53,7 +57,7 @@ public class TransferValidatedConsumer {
                     .map(i -> new DonationItemEvent(i.getKitId(), i.getQuantity()))
                     .toList();
             donationEventPublisher.publishDonationConfirmed(
-                    new DonationConfirmedEvent(order.getId(), order.getUserEmail(), items, LocalDateTime.now())
+                    new DonationConfirmedEvent(order.getId(), order.getUserEmail(), order.getCampaignId(), items, LocalDateTime.now())
             );
             donationEventPublisher.publishOrderReadyForShipping(
                     new OrderReadyForShippingEvent(

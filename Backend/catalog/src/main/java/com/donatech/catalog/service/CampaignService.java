@@ -5,6 +5,7 @@ import com.donatech.catalog.client.UserStatusDto;
 import com.donatech.catalog.controller.response.MessageResponse;
 import com.donatech.catalog.dto.CampaignKitDto;
 import com.donatech.catalog.dto.CampaignRequestDto;
+import com.donatech.catalog.dto.response.CampaignImageDto;
 import com.donatech.catalog.dto.response.CampaignKitResponseDto;
 import com.donatech.catalog.dto.response.CampaignResponseDto;
 import com.donatech.catalog.event.CampaignCreatedEvent;
@@ -12,12 +13,15 @@ import com.donatech.catalog.event.CampaignCreatedPublisher;
 import com.donatech.catalog.exception.ConflictException;
 import com.donatech.catalog.exception.ResourceNotFoundException;
 import com.donatech.catalog.model.Campaign;
+import com.donatech.catalog.model.CampaignImage;
 import com.donatech.catalog.model.CampaignKit;
 import com.donatech.catalog.model.CampaignStatus;
 import com.donatech.catalog.model.Kit;
+import com.donatech.catalog.repository.CampaignImageRepository;
 import com.donatech.catalog.repository.CampaignKitRepository;
 import com.donatech.catalog.repository.CampaignRepository;
 import com.donatech.catalog.repository.KitRepository;
+import org.springframework.web.multipart.MultipartFile;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -32,10 +36,12 @@ import java.util.List;
 public class CampaignService {
 
     private final CampaignRepository campaignRepository;
+    private final CampaignImageRepository campaignImageRepository;
     private final CampaignKitRepository campaignKitRepository;
     private final KitRepository kitRepository;
     private final CampaignCreatedPublisher campaignCreatedPublisher;
     private final UsersClient usersClient;
+    private final ImageStorageService imageStorageService;
 
     public List<CampaignResponseDto> getAll() {
         return campaignRepository.findAll().stream().map(this::toDto).toList();
@@ -66,6 +72,7 @@ public class CampaignService {
                 .kitPrecioEstimado(ck.getKit() != null ? ck.getKit().getPrecioEstimado() : null)
                 .cantidadNecesaria(ck.getCantidadNecesaria())
                 .cantidadFulfilled(ck.getCantidadFulfilled())
+                .cantidadEntregada(ck.getCantidadEntregada())
                 .build()).toList();
 
         return CampaignResponseDto.builder()
@@ -145,6 +152,14 @@ public class CampaignService {
         return ResponseEntity.ok(new MessageResponse("Kit agregado a la campaña correctamente."));
     }
 
+    public ResponseEntity<MessageResponse> updateKitQuantity(Long campaignId, Long kitId, Integer cantidadNecesaria) {
+        CampaignKit ck = campaignKitRepository.findByCampaignIdAndKitId(campaignId, kitId)
+                .orElseThrow(() -> new ResourceNotFoundException("Kit " + kitId + " no encontrado en la campaña " + campaignId));
+        ck.setCantidadNecesaria(cantidadNecesaria);
+        campaignKitRepository.save(ck);
+        return ResponseEntity.ok(new MessageResponse("Cantidad necesaria del kit actualizada correctamente."));
+    }
+
     public ResponseEntity<MessageResponse> removeKit(Long campaignId, Long kitId) {
         CampaignKit ck = campaignKitRepository.findByCampaignIdAndKitId(campaignId, kitId)
                 .orElseThrow(() -> new ResourceNotFoundException("Kit " + kitId + " no encontrado en la campaña " + campaignId));
@@ -169,5 +184,54 @@ public class CampaignService {
                 .cantidadNecesaria(dto.getCantidadNecesaria())
                 .build();
         campaign.getKits().add(ck);
+    }
+
+    // ─────────────────────────────────
+    // Imágenes de campaña
+    // ─────────────────────────────────
+
+    public List<CampaignImageDto> getCampaignImages(Long campaignId) {
+        findById(campaignId); // valida existencia
+        return campaignImageRepository.findByCampaignIdOrderByOrden(campaignId)
+                .stream().map(i -> new CampaignImageDto(i.getId(), i.getImagenUrl(), i.getOrden())).toList();
+    }
+
+    public CampaignImageDto uploadCampaignImage(Long campaignId, MultipartFile file, String uploaderEmail) throws java.io.IOException {
+        Campaign campaign = findById(campaignId);
+        long count = campaignImageRepository.countByCampaignId(campaignId);
+        if (count >= 3) {
+            throw new IllegalArgumentException("La campaña ya tiene el máximo de 3 imágenes.");
+        }
+        String url = imageStorageService.storeUnique("campaigns", uploaderEmail, file);
+        CampaignImage img = CampaignImage.builder()
+                .campaign(campaign)
+                .imagenUrl(url)
+                .orden((int) count + 1)
+                .build();
+        campaignImageRepository.save(img);
+        return new CampaignImageDto(img.getId(), img.getImagenUrl(), img.getOrden());
+    }
+
+    public byte[] getCampaignImageBytes(Long campaignId, Long imageId) throws java.io.IOException {
+        CampaignImage img = campaignImageRepository.findById(imageId)
+                .filter(i -> i.getCampaign().getId().equals(campaignId))
+                .orElseThrow(() -> new ResourceNotFoundException("Imagen no encontrada"));
+        return imageStorageService.load(img.getImagenUrl());
+    }
+
+    public String getCampaignImageContentType(Long campaignId, Long imageId) {
+        CampaignImage img = campaignImageRepository.findById(imageId)
+                .filter(i -> i.getCampaign().getId().equals(campaignId))
+                .orElseThrow(() -> new ResourceNotFoundException("Imagen no encontrada"));
+        return imageStorageService.detectContentType(img.getImagenUrl());
+    }
+
+    public ResponseEntity<MessageResponse> deleteCampaignImage(Long campaignId, Long imageId) {
+        CampaignImage img = campaignImageRepository.findById(imageId)
+                .filter(i -> i.getCampaign().getId().equals(campaignId))
+                .orElseThrow(() -> new ResourceNotFoundException("Imagen no encontrada"));
+        imageStorageService.delete(img.getImagenUrl());
+        campaignImageRepository.delete(img);
+        return ResponseEntity.ok(new MessageResponse("Imagen eliminada correctamente."));
     }
 }

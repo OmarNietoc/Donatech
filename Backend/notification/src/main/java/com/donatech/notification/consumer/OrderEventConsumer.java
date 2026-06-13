@@ -1,5 +1,7 @@
 package com.donatech.notification.consumer;
 
+import com.donatech.notification.event.DeliverySubmittedEvent;
+import com.donatech.notification.event.OrderDeliveredEvent;
 import com.donatech.notification.event.OrderShippedEvent;
 import com.donatech.notification.event.TransferResultEvent;
 import com.donatech.notification.event.TransferSubmittedEvent;
@@ -68,6 +70,32 @@ public class OrderEventConsumer {
                 event.recipientEmail(),
                 "Tu transferencia fue aprobada — Donatech",
                 "transfer-approved",
+                ctx
+        );
+    }
+
+    @RabbitListener(queues = "notification.delivery.submitted")
+    public void handleDeliverySubmitted(DeliverySubmittedEvent event) {
+        log.info("Notificando evidencia de entrega para orden id={} a {}", event.orderId(), event.userEmail());
+        Context ctx = new Context();
+        ctx.setVariable("orderId", event.orderId());
+        emailService.sendHtmlEmail(
+                event.userEmail(),
+                "Tu donación fue entregada — pendiente de confirmación — Donatech",
+                "delivery-submitted",
+                ctx
+        );
+    }
+
+    @RabbitListener(queues = "notification.order.delivered")
+    public void handleOrderDelivered(OrderDeliveredEvent event) {
+        log.info("Notificando entrega confirmada para orden id={} a {}", event.orderId(), event.userEmail());
+        Context ctx = new Context();
+        ctx.setVariable("orderId", event.orderId());
+        emailService.sendHtmlEmail(
+                event.userEmail(),
+                "¡Tu donación llegó a destino! — Donatech",
+                "order-delivered",
                 ctx
         );
     }

@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -107,6 +108,7 @@ public class SoporteController {
 
     @Operation(summary = "Validar campaña",
             description = "Admin/voluntario aprueba o rechaza una campaña. Publica evento a catalog ms.")
+    @PreAuthorize("hasAnyRole('ADMIN','VOLUNTARIO')")
     @PatchMapping("/{id}/validate-campaign")
     public ResponseEntity<MessageResponse> validateCampaign(
             @PathVariable Long id,
@@ -117,6 +119,7 @@ public class SoporteController {
 
     @Operation(summary = "Validar transferencia bancaria",
             description = "Admin/voluntario aprueba o rechaza comprobante. Publica evento a order ms.")
+    @PreAuthorize("hasAnyRole('ADMIN','VOLUNTARIO')")
     @PatchMapping("/{id}/validate-transfer")
     public ResponseEntity<MessageResponse> validateTransfer(
             @PathVariable Long id,

@@ -32,6 +32,26 @@ public class RabbitConfig {
     }
 
     @Bean
+    public Queue stockRestoreQueue() {
+        return new Queue("catalog.stock.restore", true);
+    }
+
+    @Bean
+    public Binding stockRestoreBinding(Queue stockRestoreQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(stockRestoreQueue).to(donatechExchange).with("donation.cancelled");
+    }
+
+    @Bean
+    public Queue orderDeliveredQueue() {
+        return new Queue("catalog.order.delivered", true);
+    }
+
+    @Bean
+    public Binding orderDeliveredBinding(Queue orderDeliveredQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(orderDeliveredQueue).to(donatechExchange).with("order.delivered");
+    }
+
+    @Bean
     public Queue campaignResultQueue() {
         return new Queue("catalog.campaign.result", true);
     }

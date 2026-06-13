@@ -27,4 +27,34 @@ public class DonationEventPublisher {
         log.info("Publicando order.ready_for_shipping para orden id={}", event.orderId());
         rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "order.ready_for_shipping", event);
     }
+
+    public void publishDeliverySubmitted(DeliverySubmittedEvent event) {
+        log.info("Publicando delivery.submitted para orden id={}", event.orderId());
+        rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "delivery.submitted", event);
+    }
+
+    public void publishOrderDelivered(OrderDeliveredEvent event) {
+        log.info("Publicando order.delivered para orden id={}", event.orderId());
+        rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "order.delivered", event);
+    }
+
+    public void publishDonationCancelled(DonationCancelledEvent event) {
+        log.info("Publicando donation.cancelled para donación id={}", event.donationId());
+        rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "donation.cancelled", event);
+    }
+
+    public void publishBeneficiaryThankYou(BeneficiaryThankYouEvent event) {
+        log.info("Publicando beneficiary.thank-you para orden id={}", event.orderId());
+        rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "beneficiary.thank-you", event);
+    }
+
+    public void publishOrderShipped(OrderShippedEvent event) {
+        log.info("Publicando order.shipped para orden id={}", event.orderId());
+        rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "order.shipped", event);
+    }
+
+    public void publishDeliveryIncoming(BeneficiaryShipmentEvent event) {
+        log.info("Publicando delivery.incoming para orden id={}", event.orderId());
+        rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "delivery.incoming", event);
+    }
 }

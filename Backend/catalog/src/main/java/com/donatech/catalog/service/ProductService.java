@@ -157,6 +157,14 @@ public class ProductService {
         return productRepository.save(product);
     }
 
+    @Transactional
+    public Product restoreStock(String productId, Integer quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + productId));
+        product.setStock(product.getStock() + quantity);
+        return productRepository.save(product);
+    }
+
     public List<Product> getLowStockProducts() {
         return productRepository.findLowStockProducts();
     }

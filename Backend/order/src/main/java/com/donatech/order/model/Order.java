@@ -65,20 +65,26 @@ public class Order {
     @Column(name = "campaign_id")
     private Long campaignId;
 
-    @Lob
-    @Column(name = "transfer_proof")
-    private byte[] transferProof;
+    @Column(name = "transfer_proof_url", length = 500)
+    private String transferProofUrl;
 
     @Column(name = "transfer_proof_uploaded_at")
     private LocalDateTime transferProofUploadedAt;
 
-    @Lob
-    @Column(name = "delivery_photo")
-    private byte[] deliveryPhoto;
+    @Column(name = "transportista_nombre", length = 150)
+    private String transportistaNombre;
 
-    @Lob
-    @Column(name = "delivery_document")
-    private byte[] deliveryDocument;
+    @Column(name = "transportista_contacto", length = 100)
+    private String transportistaContacto;
+
+    @Column(name = "courier_assigned_at")
+    private LocalDateTime courierAssignedAt;
+
+    @Column(name = "delivery_photo_url", length = 500)
+    private String deliveryPhotoUrl;
+
+    @Column(name = "delivery_document_url", length = 500)
+    private String deliveryDocumentUrl;
 
     @Column(name = "delivery_confirmed_at")
     private LocalDateTime deliveryConfirmedAt;
@@ -88,6 +94,19 @@ public class Order {
 
     @Column(name = "rejection_reason", length = 1000)
     private String rejectionReason;
+
+    // ─── Mensaje de agradecimiento del beneficiario al donante ───
+    @Column(name = "thank_you_message", length = 600)
+    private String thankYouMessage;
+
+    @Column(name = "thank_you_sent_at")
+    private LocalDateTime thankYouSentAt;
+
+    @ElementCollection
+    @CollectionTable(name = "donation_thank_you_images", joinColumns = @JoinColumn(name = "donation_id"))
+    @Column(name = "image_url", length = 500)
+    @Builder.Default
+    private List<String> thankYouImageUrls = new ArrayList<>();
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference

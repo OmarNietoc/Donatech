@@ -3,6 +3,8 @@ package com.donatech.catalog.controller;
 import com.donatech.catalog.controller.response.MessageResponse;
 import com.donatech.catalog.dto.CampaignKitDto;
 import com.donatech.catalog.dto.CampaignRequestDto;
+import com.donatech.catalog.dto.UpdateCampaignKitDto;
+import com.donatech.catalog.dto.response.CampaignImageDto;
 import com.donatech.catalog.dto.response.CampaignResponseDto;
 import com.donatech.catalog.service.CampaignService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,7 +13,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -60,6 +64,15 @@ public class CampaignController {
         return campaignService.addKit(id, dto);
     }
 
+    @Operation(summary = "Actualizar cantidad necesaria de un kit en la campaña")
+    @PatchMapping("/{id}/kits/{kitId}")
+    public ResponseEntity<MessageResponse> updateKitQuantity(
+            @PathVariable Long id,
+            @PathVariable Long kitId,
+            @Valid @RequestBody UpdateCampaignKitDto dto) {
+        return campaignService.updateKitQuantity(id, kitId, dto.getCantidadNecesaria());
+    }
+
     @Operation(summary = "Remover kit de campaña")
     @DeleteMapping("/{id}/kits/{kitId}")
     public ResponseEntity<MessageResponse> removeKit(
@@ -72,5 +85,42 @@ public class CampaignController {
     @PatchMapping("/{id}/close")
     public ResponseEntity<MessageResponse> close(@PathVariable Long id) {
         return campaignService.close(id);
+    }
+
+    // ─── Imágenes de campaña ────────────────────────────────────────────────
+
+    @Operation(summary = "Listar metadatos de imágenes de campaña")
+    @GetMapping("/{id}/images")
+    public ResponseEntity<List<CampaignImageDto>> getImages(@PathVariable Long id) {
+        return ResponseEntity.ok(campaignService.getCampaignImages(id));
+    }
+
+    @Operation(summary = "Subir imagen a campaña (máx 3)")
+    @PostMapping(value = "/{id}/images", consumes = "multipart/form-data")
+    public ResponseEntity<CampaignImageDto> uploadImage(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "X-User-Email", defaultValue = "unknown") String uploaderEmail) throws IOException {
+        return ResponseEntity.status(201).body(campaignService.uploadCampaignImage(id, file, uploaderEmail));
+    }
+
+    @Operation(summary = "Obtener imagen de campaña (bytes, público)")
+    @GetMapping("/{id}/images/{imageId}")
+    public ResponseEntity<byte[]> getImage(
+            @PathVariable Long id,
+            @PathVariable Long imageId) throws IOException {
+        byte[] bytes = campaignService.getCampaignImageBytes(id, imageId);
+        String contentType = campaignService.getCampaignImageContentType(id, imageId);
+        return ResponseEntity.ok()
+                .header("Content-Type", contentType)
+                .body(bytes);
+    }
+
+    @Operation(summary = "Eliminar imagen de campaña")
+    @DeleteMapping("/{id}/images/{imageId}")
+    public ResponseEntity<MessageResponse> deleteImage(
+            @PathVariable Long id,
+            @PathVariable Long imageId) {
+        return campaignService.deleteCampaignImage(id, imageId);
     }
 }

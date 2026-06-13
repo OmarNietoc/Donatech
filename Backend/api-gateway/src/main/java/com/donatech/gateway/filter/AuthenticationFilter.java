@@ -30,6 +30,10 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
+            // Endpoints internos (comunicación entre microservicios) nunca se exponen vía gateway
+            if (exchange.getRequest().getURI().getPath().contains("/internal/")) {
+                return onError(exchange, "Forbidden", HttpStatus.FORBIDDEN);
+            }
             if (validator.isSecured.test(exchange.getRequest())) {
                 if (!exchange.getRequest().getHeaders().containsHeader(HttpHeaders.AUTHORIZATION)) {
                     return onError(exchange, "Missing authorization header", HttpStatus.UNAUTHORIZED);
@@ -86,22 +90,32 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
 
     @Component
     public static class RouteValidator {
-        public static final List<String> openApiEndpoints = List.of(
+        // Abiertos para cualquier método (login/registro son POST, swagger/eureka infraestructura)
+        public static final List<String> openAllMethods = List.of(
                 "/api/auth/register",
                 "/api/auth/login",
-                "/api/products",
-                "/api/categories",
-                "/api/units",
-                "/api/campaigns",
-                "/api/regions",
-                "/api/comunas",
                 "/swagger-ui",
                 "/v3/api-docs",
                 "/eureka");
 
-        public java.util.function.Predicate<ServerHttpRequest> isSecured = request -> openApiEndpoints
-                .stream()
-                .noneMatch(uri -> request.getURI().getPath().startsWith(uri));
+        // Contenido público: solo lectura. Escritura exige JWT.
+        public static final List<String> openGetOnly = List.of(
+                "/api/products",
+                "/api/categories",
+                "/api/units",
+                "/api/campaigns",
+                "/api/kits",
+                "/api/regions",
+                "/api/comunas",
+                "/api/config");
+
+        public java.util.function.Predicate<ServerHttpRequest> isSecured = request -> {
+            String path = request.getURI().getPath();
+            boolean openForAll = openAllMethods.stream().anyMatch(path::startsWith);
+            boolean openForGet = org.springframework.http.HttpMethod.GET.equals(request.getMethod())
+                    && openGetOnly.stream().anyMatch(path::startsWith);
+            return !(openForAll || openForGet);
+        };
     }
 
     private final RouteValidator validator = new RouteValidator();
