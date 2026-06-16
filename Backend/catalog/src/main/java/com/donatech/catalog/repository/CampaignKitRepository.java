@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface CampaignKitRepository extends JpaRepository<CampaignKit, Long> {
     List<CampaignKit> findByCampaignId(Long campaignId);
     Optional<CampaignKit> findByCampaignIdAndKitId(Long campaignId, Long kitId);
+    List<CampaignKit> findByKitId(Long kitId);
+    boolean existsByKitId(Long kitId);
 }

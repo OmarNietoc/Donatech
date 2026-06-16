@@ -1,5 +1,6 @@
 package com.donatech.catalog.dto;
 
+import com.donatech.catalog.model.KitTipo;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -23,6 +24,8 @@ public class KitDto {
     private String descripcion;
 
     private Integer activo;
+
+    private KitTipo tipo;
 
     private Integer precioEstimado;
 

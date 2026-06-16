@@ -38,6 +38,11 @@ public class Kit {
     @Builder.Default
     private Integer activo = 1;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    @Builder.Default
+    private KitTipo tipo = KitTipo.STANDARD;
+
     private Integer precioEstimado;
 
     @OneToMany(mappedBy = "kit", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -22,6 +22,7 @@ public class CampaignResultConsumer {
             if (event.approved()) {
                 campaign.setEstado(CampaignStatus.ACTIVA);
                 campaign.setFechaActivacion(LocalDateTime.now());
+                campaign.setCostoLogistica(event.logistica() != null ? event.logistica() : 0);
             } else {
                 campaign.setEstado(CampaignStatus.INACTIVA);
                 campaign.setMotivoRechazo(event.motivo());

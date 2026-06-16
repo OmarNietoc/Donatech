@@ -212,6 +212,68 @@ services:
         condition: service_healthy
 
   # ─────────────────────────────────────────
+  # Microservicio IA — Kit Personalizado
+  # ─────────────────────────────────────────
+  kit-ia-service:
+    build:
+      context: ./kit-ia-service
+      dockerfile: Dockerfile
+    container_name: donatech-kit-ia
+    image: donatech/kit-ia-service:latest
+    env_file:
+      - .env
+    ports:
+      - "8001:8001"
+    environment:
+      # Config no-sensible inline (patrón del proyecto); secretos LLM vía .env
+      DB_HOST: postgres
+      DB_NAME: donatech
+      DB_USER: catalog_user
+      DB_PASSWORD: ${CATALOG_DB_PASS}
+      DB_SCHEMA: catalog
+      MS_KITS_URL: http://catalog-service:8081
+      USERS_URL: http://users-service:8083
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka
+      APP_NAME: kit-ia-service
+      APP_HOST: kit-ia-service
+      APP_PORT: 8001
+      OLLAMA_BASE_URL: http://ollama:11434/v1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/kit-ia/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      discovery-server:
+        condition: service_healthy
+
+  ollama:
+    image: ollama/ollama
+    container_name: donatech-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+    volumes:
+      - ollama-data:/root/.ollama
+    # Arranca el server y descarga el modelo de fallback al volumen (idempotente).
+    # $$ escapa la interpolación de compose para que lo expanda el shell del contenedor.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        ollama serve &
+        srv=$$!
+        until ollama ls >/dev/null 2>&1; do sleep 1; done
+        ollama pull "$$OLLAMA_MODEL" || true
+        wait $$srv
+
+  # ─────────────────────────────────────────
   # API Gateway
   # ─────────────────────────────────────────
   api-gateway:
@@ -235,3 +297,4 @@ volumes:
   catalog-images-data:
   order-images-data:
   users-images-data:
+  ollama-data:

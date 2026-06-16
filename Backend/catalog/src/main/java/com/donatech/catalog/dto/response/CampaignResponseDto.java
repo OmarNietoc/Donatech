@@ -18,6 +18,7 @@ public class CampaignResponseDto {
     CampaignStatus estado;
     Long regionId;
     Long comunaId;
+    Integer costoLogistica;
     LocalDateTime fechaCreacion;
     LocalDateTime fechaActivacion;
     LocalDateTime fechaCierre;

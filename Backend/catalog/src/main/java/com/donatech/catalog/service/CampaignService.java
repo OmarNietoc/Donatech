@@ -84,6 +84,7 @@ public class CampaignService {
                 .estado(c.getEstado())
                 .regionId(c.getRegionId())
                 .comunaId(c.getComunaId())
+                .costoLogistica(c.getCostoLogistica())
                 .fechaCreacion(c.getFechaCreacion())
                 .fechaActivacion(c.getFechaActivacion())
                 .fechaCierre(c.getFechaCierre())
@@ -165,6 +166,19 @@ public class CampaignService {
                 .orElseThrow(() -> new ResourceNotFoundException("Kit " + kitId + " no encontrado en la campaña " + campaignId));
         campaignKitRepository.delete(ck);
         return ResponseEntity.ok(new MessageResponse("Kit eliminado de la campaña correctamente."));
+    }
+
+    public ResponseEntity<MessageResponse> updateLogistica(Long campaignId, Integer monto) {
+        if (monto == null || monto < 0) {
+            throw new IllegalArgumentException("El costo de logística debe ser 0 o mayor.");
+        }
+        Campaign campaign = findById(campaignId);
+        if (campaign.getEstado() != CampaignStatus.ACTIVA) {
+            throw new ConflictException("Solo se puede editar la logística de una campaña ACTIVA.");
+        }
+        campaign.setCostoLogistica(monto);
+        campaignRepository.save(campaign);
+        return ResponseEntity.ok(new MessageResponse("Costo de logística actualizado a $" + monto + " CLP."));
     }
 
     public ResponseEntity<MessageResponse> close(Long campaignId) {

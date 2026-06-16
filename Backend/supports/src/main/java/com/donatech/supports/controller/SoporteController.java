@@ -113,8 +113,9 @@ public class SoporteController {
     public ResponseEntity<MessageResponse> validateCampaign(
             @PathVariable Long id,
             @RequestParam boolean approved,
-            @RequestParam(required = false, defaultValue = "") String motivo) {
-        return soporteService.validateCampaign(id, approved, motivo);
+            @RequestParam(required = false, defaultValue = "") String motivo,
+            @RequestParam(required = false) Integer logistica) {
+        return soporteService.validateCampaign(id, approved, motivo, logistica);
     }
 
     @Operation(summary = "Validar transferencia bancaria",

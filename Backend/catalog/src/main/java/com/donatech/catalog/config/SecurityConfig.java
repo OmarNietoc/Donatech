@@ -40,6 +40,12 @@ public class SecurityConfig {
                                 "/api/campaigns", "/api/campaigns/**",
                                 "/api/kits", "/api/kits/**"
                         ).permitAll()
+                        // Kit personalizado (USO_UNICO) creado por el afectado vía asistente IA
+                        .requestMatchers(HttpMethod.POST, "/api/kits/personalized")
+                        .hasAnyRole("ORGANIZACION", "BENEFICIARIO", "ADMIN")
+                        // Editar logística de campaña: admin o voluntario
+                        .requestMatchers(HttpMethod.PATCH, "/api/campaigns/*/logistica")
+                        .hasAnyRole("ADMIN", "VOLUNTARIO")
                         // Escritura de campañas: organizaciones/beneficiarios crean, admin gestiona
                         .requestMatchers("/api/campaigns", "/api/campaigns/**")
                         .hasAnyRole("ORGANIZACION", "BENEFICIARIO", "ADMIN")

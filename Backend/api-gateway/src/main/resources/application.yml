@@ -56,6 +56,13 @@ spring:
               filters:
                 - AuthenticationFilter
 
+            - id: kit-ia-service
+              uri: lb://kit-ia-service
+              predicates:
+                - Path=/api/kit-ia/**
+              filters:
+                - AuthenticationFilter
+
             - id: catalog-swagger
               uri: lb://catalog-service
               predicates:

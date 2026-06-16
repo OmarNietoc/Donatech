@@ -5,10 +5,14 @@ import com.donatech.catalog.dto.KitDto;
 import com.donatech.catalog.dto.KitItemDto;
 import com.donatech.catalog.dto.response.KitItemResponseDto;
 import com.donatech.catalog.dto.response.KitResponseDto;
+import com.donatech.catalog.exception.ConflictException;
 import com.donatech.catalog.exception.ResourceNotFoundException;
+import com.donatech.catalog.model.CampaignKit;
 import com.donatech.catalog.model.Kit;
 import com.donatech.catalog.model.KitItem;
+import com.donatech.catalog.model.KitTipo;
 import com.donatech.catalog.model.Product;
+import com.donatech.catalog.repository.CampaignKitRepository;
 import com.donatech.catalog.repository.KitRepository;
 import com.donatech.catalog.repository.ProductRepository;
 import jakarta.validation.Valid;
@@ -29,10 +33,39 @@ public class KitService {
 
     private final KitRepository kitRepository;
     private final ProductRepository productRepository;
+    private final CampaignKitRepository campaignKitRepository;
     private final ImageStorageService imageStorageService;
 
-    public List<KitResponseDto> getAll() {
-        return kitRepository.findAll().stream().map(this::toDto).toList();
+    /**
+     * Precio del kit = suma de (precio producto × cantidad).
+     * La logística NO se incluye aquí: es un costo de la campaña (varía por destino)
+     * y se aplica por unidad de kit al crear la donación (ms order).
+     */
+    private int calcularPrecio(Kit kit) {
+        return kit.getItems().stream()
+                .mapToInt(i -> (i.getProduct() != null ? i.getProduct().getPrecio() : 0)
+                        * i.getCantidadRequerida())
+                .sum();
+    }
+
+    /**
+     * Lista kits filtrando por tipo:
+     * <ul>
+     *   <li>{@code STANDARD} (o null): solo kits generales reutilizables (default).</li>
+     *   <li>{@code USO_UNICO}: solo kits personalizados (con su campaña).</li>
+     *   <li>{@code ALL}: todos.</li>
+     * </ul>
+     */
+    public List<KitResponseDto> getAll(String tipo) {
+        String filtro = tipo == null ? "STANDARD" : tipo.trim().toUpperCase();
+        return kitRepository.findAll().stream()
+                .filter(k -> switch (filtro) {
+                    case "USO_UNICO" -> k.getTipo() == KitTipo.USO_UNICO;
+                    case "ALL" -> true;
+                    default -> k.getTipo() != KitTipo.USO_UNICO; // STANDARD / null
+                })
+                .map(this::toDto)
+                .toList();
     }
 
     public KitResponseDto getById(Long id) {
@@ -54,14 +87,31 @@ public class KitService {
                 .productHasImage(i.getProduct() != null && i.getProduct().getImagenUrl() != null)
                 .build()).toList();
 
+        Long campaignId = null;
+        String campaignTitulo = null;
+        if (k.getTipo() == KitTipo.USO_UNICO) {
+            // Personalizado: adjunta la campaña a la que está vinculado (si la hay).
+            campaignId = campaignKitRepository.findByKitId(k.getId()).stream()
+                    .findFirst()
+                    .map(ck -> ck.getCampaign() != null ? ck.getCampaign().getId() : null)
+                    .orElse(null);
+            campaignTitulo = campaignKitRepository.findByKitId(k.getId()).stream()
+                    .findFirst()
+                    .map(ck -> ck.getCampaign() != null ? ck.getCampaign().getTitulo() : null)
+                    .orElse(null);
+        }
+
         return KitResponseDto.builder()
                 .id(k.getId())
                 .nombre(k.getNombre())
                 .descripcion(k.getDescripcion())
                 .activo(k.getActivo())
+                .tipo(k.getTipo() != null ? k.getTipo() : KitTipo.STANDARD)
                 .precioEstimado(k.getPrecioEstimado())
                 .items(items)
                 .hasImage(k.getImagenUrl() != null)
+                .campaignId(campaignId)
+                .campaignTitulo(campaignTitulo)
                 .build();
     }
 
@@ -70,14 +120,21 @@ public class KitService {
                 .nombre(dto.getNombre())
                 .descripcion(dto.getDescripcion())
                 .activo(dto.getActivo() != null ? dto.getActivo() : 1)
-                .precioEstimado(dto.getPrecioEstimado())
+                .tipo(dto.getTipo() != null ? dto.getTipo() : KitTipo.STANDARD)
                 .items(new ArrayList<>())
                 .build();
 
         addItemsToKit(kit, dto.getItems());
+        kit.setPrecioEstimado(calcularPrecio(kit)); // siempre automático
         kitRepository.save(kit);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(MessageResponse.builder().message("Kit creado exitosamente.").id(kit.getId()).build());
+    }
+
+    public ResponseEntity<MessageResponse> createPersonalized(@Valid KitDto dto) {
+        // Kit de uso único atado a una campaña; el tipo se fuerza por seguridad.
+        dto.setTipo(KitTipo.USO_UNICO);
+        return create(dto);
     }
 
     public ResponseEntity<MessageResponse> update(Long id, @Valid KitDto dto) {
@@ -85,10 +142,11 @@ public class KitService {
         kit.setNombre(dto.getNombre());
         kit.setDescripcion(dto.getDescripcion());
         if (dto.getActivo() != null) kit.setActivo(dto.getActivo());
-        kit.setPrecioEstimado(dto.getPrecioEstimado());
+        if (dto.getTipo() != null) kit.setTipo(dto.getTipo());
 
         kit.getItems().clear();
         addItemsToKit(kit, dto.getItems());
+        kit.setPrecioEstimado(calcularPrecio(kit)); // siempre automático
 
         kitRepository.save(kit);
         return ResponseEntity.ok(new MessageResponse("Kit actualizado correctamente."));
@@ -126,6 +184,11 @@ public class KitService {
 
     public ResponseEntity<MessageResponse> delete(Long id) {
         Kit kit = findById(id);
+        if (campaignKitRepository.existsByKitId(id)) {
+            throw new ConflictException(
+                    "No se puede eliminar el kit porque está en uso en una o más campañas. "
+                    + "Quítalo de las campañas antes de eliminarlo.");
+        }
         kitRepository.delete(kit);
         return ResponseEntity.ok(new MessageResponse("Kit eliminado correctamente."));
     }

@@ -47,6 +47,11 @@ public class Order {
     @NotNull(message = "El descuento aplicado no puede ser nulo")
     private Integer discountApplied;
 
+    // Cargo de logística (costo por kit de la campaña × cantidad de kits), incluido en finalPrice.
+    @Column(name = "logistics_cost")
+    @Builder.Default
+    private Integer logisticsCost = 0;
+
     @NotNull(message = "La fecha de Orden es obligatoria")
     private LocalDateTime orderDate;
 

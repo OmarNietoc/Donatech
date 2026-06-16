@@ -10,4 +10,5 @@ public class CampaignSummaryDto {
     private Long beneficiaryId;
     private String titulo;
     private String motivo;
+    private Integer costoLogistica;
 }

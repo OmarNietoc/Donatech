@@ -23,10 +23,11 @@ public class KitController {
 
     private final KitService kitService;
 
-    @Operation(summary = "Listar todos los kits")
+    @Operation(summary = "Listar kits (tipo: STANDARD por defecto, USO_UNICO, ALL)")
     @GetMapping
-    public ResponseEntity<List<KitResponseDto>> getAll() {
-        return ResponseEntity.ok(kitService.getAll());
+    public ResponseEntity<List<KitResponseDto>> getAll(
+            @RequestParam(value = "tipo", required = false) String tipo) {
+        return ResponseEntity.ok(kitService.getAll(tipo));
     }
 
     @Operation(summary = "Obtener kit por ID")
@@ -56,6 +57,12 @@ public class KitController {
     @PostMapping
     public ResponseEntity<MessageResponse> create(@Valid @RequestBody KitDto dto) {
         return kitService.create(dto);
+    }
+
+    @Operation(summary = "Crear kit personalizado (USO_UNICO) — para afectados vía asistente IA")
+    @PostMapping("/personalized")
+    public ResponseEntity<MessageResponse> createPersonalized(@Valid @RequestBody KitDto dto) {
+        return kitService.createPersonalized(dto);
     }
 
     @Operation(summary = "Actualizar kit")

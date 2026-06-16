@@ -81,6 +81,14 @@ public class CampaignController {
         return campaignService.removeKit(id, kitId);
     }
 
+    @Operation(summary = "Actualizar costo de logística por kit (solo campaña ACTIVA)")
+    @PatchMapping("/{id}/logistica")
+    public ResponseEntity<MessageResponse> updateLogistica(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, Integer> body) {
+        return campaignService.updateLogistica(id, body.get("monto"));
+    }
+
     @Operation(summary = "Finalizar campaña")
     @PatchMapping("/{id}/close")
     public ResponseEntity<MessageResponse> close(@PathVariable Long id) {

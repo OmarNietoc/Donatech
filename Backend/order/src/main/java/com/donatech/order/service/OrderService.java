@@ -71,9 +71,21 @@ public class OrderService {
 
     // Resuelve el beneficiario (user id) de la campaña asociada. Null-safe vía fallback Feign.
     private Long resolveBeneficiaryId(Long campaignId) {
-        if (campaignId == null) return null;
-        var campaign = campaignClient.getCampaignById(campaignId);
+        var campaign = fetchCampaign(campaignId);
         return campaign != null ? campaign.getBeneficiaryId() : null;
+    }
+
+    /**
+     * Obtiene la campaña vía Feign con reintento: la primera llamada tras arrancar
+     * puede caer al fallback (circuit breaker/cold start) devolviendo null.
+     */
+    private com.donatech.order.dto.CampaignSummaryDto fetchCampaign(Long campaignId) {
+        if (campaignId == null) return null;
+        for (int intento = 0; intento < 3; intento++) {
+            var campaign = campaignClient.getCampaignById(campaignId);
+            if (campaign != null) return campaign;
+        }
+        return null;
     }
 
     // Transiciones de estado permitidas. Los estados terminales no aparecen como clave.
@@ -749,6 +761,7 @@ public class OrderService {
                 .estado(order.getEstado())
                 .coupon(order.getCoupon() != null ? convertCouponToResponse(order.getCoupon()) : null)
                 .discountApplied(order.getDiscountApplied())
+                .logisticsCost(order.getLogisticsCost())
                 .finalPrice(order.getFinalPrice())
                 .orderDate(order.getOrderDate())
                 .campaignId(order.getCampaignId())
@@ -816,8 +829,18 @@ public class OrderService {
                     : ZERO;
         }
 
+        // Campaña: consulta (con reintento) reutilizada para logística y beneficiaryId.
+        var campaign = fetchCampaign(dto.getCampaignId());
+
+        // Logística por unidad de kit (costo de la campaña × total de kits donados).
+        int unidades = items.stream().mapToInt(OrderItem::getQuantity).sum();
+        int logisticsCost = (campaign != null && campaign.getCostoLogistica() != null)
+                ? campaign.getCostoLogistica() * unidades
+                : 0;
+        Long beneficiaryId = campaign != null ? campaign.getBeneficiaryId() : null;
+
         int discountApplied = Math.min(desiredDiscount, subtotal);
-        int finalPrice = subtotal - discountApplied;
+        int finalPrice = (subtotal + logisticsCost) - discountApplied;
 
         // Una orden creada completa (checkout) entra directo como INGRESADA;
         // el flujo de carrito (addItemToCart) mantiene DRAFT.
@@ -827,9 +850,10 @@ public class OrderService {
                 .coupon(coupon)
                 .finalPrice(finalPrice)
                 .discountApplied(discountApplied)
+                .logisticsCost(logisticsCost)
                 .orderDate(currentOrder != null ? currentOrder.getOrderDate() : LocalDateTime.now())
                 .campaignId(dto.getCampaignId())
-                .beneficiaryId(resolveBeneficiaryId(dto.getCampaignId()))
+                .beneficiaryId(beneficiaryId)
                 .items(items)
                 .build();
 

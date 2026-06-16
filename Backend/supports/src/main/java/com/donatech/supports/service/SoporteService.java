@@ -104,14 +104,16 @@ public class SoporteService {
         return soporteRepository.findByDonationId(donationId);
     }
 
-    public ResponseEntity<MessageResponse> validateCampaign(Long ticketId, boolean approved, String motivo) {
+    public ResponseEntity<MessageResponse> validateCampaign(Long ticketId, boolean approved, String motivo, Integer logistica) {
         Soporte soporte = obtenerSoportePorId(ticketId);
         soporte.setEstado(approved ? EstadoSoporte.RESUELTO : EstadoSoporte.CERRADO);
         soporte.setRespuesta(motivo);
         soporte.setFechaResolucion(LocalDateTime.now());
         soporteRepository.save(soporte);
 
-        campaignResultPublisher.publish(new CampaignResultEvent(soporte.getCampaignId(), approved, motivo, soporte.getRecipientEmail()));
+        campaignResultPublisher.publish(new CampaignResultEvent(
+                soporte.getCampaignId(), approved, motivo, soporte.getRecipientEmail(),
+                logistica != null ? logistica : 0));
         return ResponseEntity.ok(new MessageResponse("Campaña " + (approved ? "aprobada" : "rechazada") + " correctamente."));
     }
 

@@ -52,6 +52,12 @@ public class Campaign {
     @Column(name = "comuna_id")
     private Long comunaId;
 
+    // Costo de logística por unidad de kit (CLP). Lo fija el admin al validar; editable mientras ACTIVA.
+    // Nullable en BD para permitir agregar la columna a campañas existentes; se trata como 0 si es null.
+    @Column(name = "costo_logistica")
+    @Builder.Default
+    private Integer costoLogistica = 0;
+
     @Column(name = "fecha_creacion", nullable = false)
     @Builder.Default
     private LocalDateTime fechaCreacion = LocalDateTime.now();

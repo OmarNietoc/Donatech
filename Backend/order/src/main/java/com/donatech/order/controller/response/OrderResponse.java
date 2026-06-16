@@ -23,6 +23,7 @@ public class OrderResponse {
     private DonationStatus estado;
     private CouponResponse coupon;
     private Integer discountApplied;
+    private Integer logisticsCost;
     private Integer finalPrice;
     private LocalDateTime orderDate;
     private Long campaignId;

@@ -4,5 +4,6 @@ public record CampaignResultEvent(
         Long campaignId,
         boolean approved,
         String motivo,
-        String recipientEmail
+        String recipientEmail,
+        Integer logistica
 ) {}
