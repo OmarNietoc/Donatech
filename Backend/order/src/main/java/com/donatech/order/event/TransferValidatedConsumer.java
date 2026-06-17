@@ -1,9 +1,11 @@
 package com.donatech.order.event;
 
+import com.donatech.order.model.Donation;
 import com.donatech.order.model.DonationStatus;
 import com.donatech.order.model.Order;
+import com.donatech.order.model.PaymentStatus;
 import com.donatech.order.model.TrackingHistory;
-import com.donatech.order.repository.OrderRepository;
+import com.donatech.order.repository.DonationRepository;
 import com.donatech.order.repository.TrackingHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,55 +20,55 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class TransferValidatedConsumer {
 
-    private final OrderRepository orderRepository;
+    private final DonationRepository donationRepository;
     private final TrackingHistoryRepository trackingHistoryRepository;
     private final DonationEventPublisher donationEventPublisher;
 
-    // @Transactional mantiene la sesión Hibernate abierta: order.getItems() es LAZY
-    // y fuera de una transacción lanza LazyInitializationException (requeue infinito)
+    // @Transactional mantiene la sesión Hibernate abierta para los LAZY (orders/items).
     @Transactional
     @RabbitListener(queues = "order.transfer.validated")
     public void handleTransferValidated(TransferValidatedEvent event) {
-        log.info("Recibido transfer.validated para orden id={}, aprobado={}", event.orderId(), event.approved());
+        log.info("Recibido transfer.validated para donación id={}, aprobado={}", event.donationId(), event.approved());
 
-        Order order = orderRepository.findById(event.orderId()).orElse(null);
-        if (order == null) {
-            log.warn("Orden id={} no encontrada al procesar transfer.validated", event.orderId());
+        Donation donation = donationRepository.findById(event.donationId()).orElse(null);
+        if (donation == null) {
+            log.warn("Donación id={} no encontrada al procesar transfer.validated", event.donationId());
             return;
         }
 
-        DonationStatus estadoAnterior = order.getEstado();
+        donation.setEstadoPago(event.approved() ? PaymentStatus.APROBADA : PaymentStatus.RECHAZADA);
+        if (!event.approved()) donation.setRejectionReason(event.motivo());
+        donationRepository.save(donation);
+
         DonationStatus estadoNuevo = event.approved() ? DonationStatus.EN_PREPARACION : DonationStatus.RECHAZADA;
 
-        if (!event.approved()) {
-            order.setRejectionReason(event.motivo());
-        }
-        order.setEstado(estadoNuevo);
-        orderRepository.save(order);
+        // Aplicar a cada orden hija (cada una su campaña/beneficiario).
+        for (Order order : donation.getOrders()) {
+            DonationStatus estadoAnterior = order.getEstado();
+            // Solo transicionar órdenes que aún esperan validación (no tocar canceladas).
+            if (estadoAnterior == DonationStatus.CANCELADA) continue;
 
-        trackingHistoryRepository.save(TrackingHistory.builder()
-                .order(order)
-                .estadoAnterior(estadoAnterior)
-                .estadoNuevo(estadoNuevo)
-                .comentario(event.motivo())
-                .fechaCambio(LocalDateTime.now())
-                .build());
+            if (!event.approved()) order.setRejectionReason(event.motivo());
+            order.setEstado(estadoNuevo);
 
-        if (estadoNuevo == DonationStatus.EN_PREPARACION) {
-            var items = order.getItems().stream()
-                    .map(i -> new DonationItemEvent(i.getKitId(), i.getQuantity()))
-                    .toList();
-            donationEventPublisher.publishDonationConfirmed(
-                    new DonationConfirmedEvent(order.getId(), order.getUserEmail(), order.getCampaignId(), items, LocalDateTime.now())
-            );
-            donationEventPublisher.publishOrderReadyForShipping(
-                    new OrderReadyForShippingEvent(
-                            order.getId(),
-                            order.getUserEmail(),
-                            order.getBeneficiaryId(),
-                            order.getZonaCatastrofeId()
-                    )
-            );
+            trackingHistoryRepository.save(TrackingHistory.builder()
+                    .order(order)
+                    .estadoAnterior(estadoAnterior)
+                    .estadoNuevo(estadoNuevo)
+                    .comentario(event.motivo())
+                    .fechaCambio(LocalDateTime.now())
+                    .build());
+
+            if (estadoNuevo == DonationStatus.EN_PREPARACION) {
+                var items = order.getItems().stream()
+                        .map(i -> new DonationItemEvent(i.getKitId(), i.getQuantity()))
+                        .toList();
+                donationEventPublisher.publishDonationConfirmed(
+                        new DonationConfirmedEvent(order.getId(), order.getUserEmail(), order.getCampaignId(), items, LocalDateTime.now()));
+                donationEventPublisher.publishOrderReadyForShipping(
+                        new OrderReadyForShippingEvent(order.getId(), order.getUserEmail(),
+                                order.getBeneficiaryId(), order.getZonaCatastrofeId()));
+            }
         }
     }
 }

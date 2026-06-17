@@ -5,8 +5,11 @@ import lombok.Data;
 
 @Data
 public class CreateUserInternalDto {
-    @NotBlank @Size(min = 4, max = 100)
+    @NotBlank @Size(min = 2, max = 100)
     private String name;
+
+    @Size(min = 2, max = 100)
+    private String apellido;
 
     @NotBlank @Email
     private String email;

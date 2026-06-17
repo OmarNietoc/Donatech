@@ -18,10 +18,16 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ ]+$", message = "'name' solo puede contener letras y espacios")
+    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+$", message = "'name' solo puede contener letras, sin espacios")
     @NotEmpty(message = "'name' no puede estar vacío")
-    @Size(min = 4, max = 100, message = "'name' debe tener entre 4 y 100 caracteres")
+    @Size(min = 2, max = 100, message = "'name' debe tener entre 2 y 100 caracteres")
     private String name;
+
+    // Apellido: nullable para no romper filas existentes; la obligatoriedad se valida en los DTOs de entrada.
+    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+$", message = "'apellido' solo puede contener letras, sin espacios")
+    @Size(min = 2, max = 100, message = "'apellido' debe tener entre 2 y 100 caracteres")
+    @Column(name = "apellido")
+    private String apellido;
 
     @Email(message = "'email' debe ser válido")
     @NotEmpty(message = "'email' no puede estar vacío")

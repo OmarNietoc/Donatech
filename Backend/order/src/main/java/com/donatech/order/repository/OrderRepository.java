@@ -22,4 +22,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByCampaignId(Long campaignId);
 
     List<Order> findByCampaignIdAndEstadoIn(Long campaignId, java.util.Collection<DonationStatus> estados);
+
+    List<Order> findByCollaboratorIdAndEstadoIn(Long collaboratorId, java.util.Collection<DonationStatus> estados);
+
+    List<Order> findByEstadoIn(java.util.Collection<DonationStatus> estados);
+
+    // Backfill: órdenes legacy aún no agrupadas bajo una Donation padre.
+    List<Order> findByDonationIsNull();
 }

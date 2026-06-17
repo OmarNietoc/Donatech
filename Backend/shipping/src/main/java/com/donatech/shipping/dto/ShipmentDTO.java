@@ -25,6 +25,10 @@ public class ShipmentDTO {
     private String customerName;
     @Schema(description = "Email del destinatario")
     private String customerEmail;
+    @Schema(description = "Teléfono del destinatario")
+    private String phone;
+    @Schema(description = "ID del beneficiario (usuario)")
+    private Long beneficiaryId;
     @Schema(description = "Dirección de entrega")
     private String shippingAddress;
     @Schema(description = "Latitud para optimización de ruta")

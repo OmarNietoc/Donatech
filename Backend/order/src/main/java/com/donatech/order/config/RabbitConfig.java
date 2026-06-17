@@ -49,6 +49,17 @@ public class RabbitConfig {
         return BindingBuilder.bind(transferValidatedQueue).to(donatechExchange).with("transfer.rejected");
     }
 
+    // Ruta asignada por shipping → mover órdenes a ASIGNADA_ENVIO + guardar colaborador.
+    @Bean
+    public Queue routeAssignedQueue() {
+        return new Queue("order.route.assigned", true);
+    }
+
+    @Bean
+    public Binding routeAssignedBinding(Queue routeAssignedQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(routeAssignedQueue).to(donatechExchange).with("route.assigned");
+    }
+
     @Bean
     public Jackson2JsonMessageConverter jsonMessageConverter() {
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter();

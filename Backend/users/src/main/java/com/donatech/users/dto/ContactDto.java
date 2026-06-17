@@ -7,7 +7,10 @@ package com.donatech.users.dto;
 public record ContactDto(
         Long id,
         String name,
+        String apellido,
         String email,
         String phone,
-        String direccion
+        String direccion,
+        String comuna,
+        String region
 ) {}

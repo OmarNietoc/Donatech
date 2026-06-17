@@ -52,7 +52,7 @@ public class CampaignController {
 
     @Operation(summary = "Crear campaña — queda en estado EN_VALIDACION")
     @PostMapping
-    public ResponseEntity<MessageResponse> create(@Valid @RequestBody CampaignRequestDto dto) {
+    public ResponseEntity<CampaignResponseDto> create(@Valid @RequestBody CampaignRequestDto dto) {
         return campaignService.create(dto);
     }
 

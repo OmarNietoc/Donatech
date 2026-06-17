@@ -1,5 +1,6 @@
 package com.donatech.order.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
@@ -35,6 +36,12 @@ public class Order {
     @NotNull(message = "El estado es obligatorio")
     @Enumerated(EnumType.STRING)
     private DonationStatus estado;
+
+    // Donación padre (pago/intención del donante que agrupa una orden por campaña).
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "donation_id")
+    @JsonBackReference
+    private Donation donation;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "coupon_id")
@@ -75,6 +82,18 @@ public class Order {
 
     @Column(name = "transfer_proof_uploaded_at")
     private LocalDateTime transferProofUploadedAt;
+
+    // Colaborador (ROLE_VOLUNTARIO, userId) asignado a la entrega vía ruta.
+    @Column(name = "collaborator_id")
+    private Long collaboratorId;
+
+    // Ruta de shipping a la que pertenece la orden (para agrupar entregas en la UI).
+    @Column(name = "route_id")
+    private String routeId;
+
+    // Nombre legible de la ruta (propagado desde shipping vía route.assigned).
+    @Column(name = "route_name")
+    private String routeName;
 
     @Column(name = "transportista_nombre", length = 150)
     private String transportistaNombre;

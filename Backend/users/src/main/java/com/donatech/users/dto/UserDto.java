@@ -15,8 +15,12 @@ public class UserDto {
 
     @Schema(description = "Nombre del usuario", example = "1")
     @NotEmpty(message = "'name' no puede estar vacío")
-    @Size(min = 4, max = 100, message = "'name' debe tener entre 4 y 100 caracteres")
+    @Size(min = 2, max = 100, message = "'name' debe tener entre 2 y 100 caracteres")
     private String name;
+
+    @Schema(description = "Apellido del usuario")
+    @Size(min = 2, max = 100)
+    private String apellido;
 
     @Email(message = "'email' debe ser válido")
     @NotEmpty(message = "'email' no puede estar vacío")

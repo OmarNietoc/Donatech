@@ -18,17 +18,17 @@ public class TransferValidationConsumer {
 
     @RabbitListener(queues = "supports.transfer.submitted")
     public void handleTransferSubmitted(TransferSubmittedEvent event) {
-        log.info("Auto-creando ticket VALIDACION_TRANSFERENCIA para orden id={}", event.orderId());
+        log.info("Auto-creando ticket VALIDACION_TRANSFERENCIA para donación id={}", event.donationId());
 
         SoporteRequestDTO dto = new SoporteRequestDTO();
-        dto.setTitulo("Validación transferencia — orden #" + event.orderId());
+        dto.setTitulo("Validación transferencia — donación #" + event.donationId());
         dto.setDescripcion("Donante " + event.userEmail() +
-                " adjuntó comprobante de transferencia para orden #" + event.orderId() +
+                " adjuntó comprobante de transferencia para la donación #" + event.donationId() +
                 ". Fecha: " + event.submittedAt());
         dto.setUsuarioId(0L);
         dto.setPrioridad(PrioridadSoporte.ALTO);
         dto.setTipo(TipoSoporte.VALIDACION_TRANSFERENCIA);
-        dto.setDonationId(event.orderId());
+        dto.setDonationId(event.donationId());
         dto.setRecipientEmail(event.userEmail());
 
         soporteService.crear(dto);

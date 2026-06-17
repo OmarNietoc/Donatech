@@ -15,11 +15,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -30,14 +34,20 @@ public class RouteService {
     private final ShipmentRepository shipmentRepository;
     private final Map<String, ShippingCalculationStrategy> calculationStrategies;
     private final ObjectMapper objectMapper;
+    private final com.donatech.shipping.event.ShippingEventPublisher eventPublisher;
 
     @Transactional
-    public Route createRoute(String companyId, String carrierId, String originAddress, List<String> shipmentIds, boolean optimizeRoute) {
-        log.info("Creando ruta para la compañía: {}", companyId);
+    public Route createRoute(String companyId, String carrierId, Long collaboratorId,
+                             String collaboratorNombre, String collaboratorEmail,
+                             String originAddress, List<String> shipmentIds, boolean optimizeRoute) {
+        log.info("Creando ruta para colaborador: {}", collaboratorId);
 
         Route route = Route.builder()
                 .companyId(companyId)
                 .carrierId(carrierId)
+                .collaboratorId(collaboratorId)
+                .collaboratorNombre(collaboratorNombre)
+                .collaboratorEmail(collaboratorEmail)
                 .routeDate(LocalDate.now())
                 .originAddress(originAddress)
                 .status(RouteStatus.PLANNED)
@@ -59,6 +69,15 @@ public class RouteService {
             route.getShipments().add(shipment);
         }
 
+        // IDs de órdenes asociadas (reutilizados para el nombre legible y el evento route.assigned).
+        List<Long> orderIds = shipments.stream()
+                .map(s -> {
+                    try { return Long.parseLong(s.getOrderId()); } catch (NumberFormatException e) { return null; }
+                })
+                .filter(java.util.Objects::nonNull)
+                .toList();
+        route.setName(buildRouteName(orderIds));
+
         String strategyKey = determineStrategyKey(carrierId);
         ShippingCalculationStrategy strategy = calculationStrategies.get(strategyKey);
 
@@ -67,18 +86,37 @@ public class RouteService {
                 : buildFallbackJson(shipments.size());
         route.setOptimizedPathJson(pathJson);
 
-        return routeRepository.save(route);
+        Route saved = routeRepository.save(route);
+
+        // Notificar a order (cambiar estado de las órdenes a ASIGNADA_ENVIO) y al colaborador (email).
+        eventPublisher.publishRouteAssigned(new com.donatech.shipping.event.RouteAssignedEvent(
+                saved.getId(), saved.getName(), orderIds, collaboratorId, collaboratorNombre, collaboratorEmail));
+
+        return saved;
+    }
+
+    /** Nombre legible "Route {fecha}_{orderIds unidos por '-'}", truncado a 33 caracteres. */
+    private String buildRouteName(List<Long> orderIds) {
+        String ids = orderIds.stream().map(String::valueOf).collect(Collectors.joining("-"));
+        String name = "Route " + LocalDate.now() + "_" + ids;
+        return name.length() > 33 ? name.substring(0, 33) : name;
     }
 
     public List<Route> getAllRoutes(String companyId, RouteStatus status) {
+        List<Route> routes;
         if (companyId != null && status != null) {
-            return routeRepository.findByCompanyIdAndStatus(companyId, status);
+            routes = routeRepository.findByCompanyIdAndStatus(companyId, status);
         } else if (companyId != null) {
-            return routeRepository.findByCompanyId(companyId);
+            routes = routeRepository.findByCompanyId(companyId);
         } else if (status != null) {
-            return routeRepository.findByStatus(status);
+            routes = routeRepository.findByStatus(status);
+        } else {
+            routes = routeRepository.findAll();
         }
-        return routeRepository.findAll();
+        // Orden cronológico inverso (último creado primero).
+        routes.sort(Comparator.comparing(Route::getCreatedAt,
+                Comparator.nullsLast(Comparator.reverseOrder())));
+        return routes;
     }
 
     public Route getRouteById(String id) {
@@ -99,6 +137,75 @@ public class RouteService {
         }
 
         return routeRepository.save(existing);
+    }
+
+    // ───────────────── Ciclo de vida event-driven (consumido desde order ms) ─────────────────
+
+    private static final Set<DeliveryStatus> TERMINAL_STATES =
+            EnumSet.of(DeliveryStatus.DELIVERED, DeliveryStatus.FAILED, DeliveryStatus.CANCELLED);
+
+    /** order.shipped: el envío sale a reparto. Mueve el shipment a DISPATCHED y arranca la ruta. */
+    @Transactional
+    public void onOrderShipped(Long orderId) {
+        Shipment shipment = findShipmentByOrder(orderId);
+        if (shipment == null) return;
+        if (shipment.getDeliveryStatus().canTransitionTo(DeliveryStatus.DISPATCHED)) {
+            shipment.setDeliveryStatus(DeliveryStatus.DISPATCHED);
+            shipmentRepository.save(shipment);
+        }
+        Route route = shipment.getRoute();
+        if (route != null && route.getStatus() == RouteStatus.PLANNED) {
+            route.setStatus(RouteStatus.IN_PROGRESS);
+            routeRepository.save(route);
+            log.info("Ruta {} pasó a IN_PROGRESS por order.shipped (orden {})", route.getId(), orderId);
+        }
+    }
+
+    /** order.delivered: el envío se entregó. Marca DELIVERED y reevalúa el cierre de la ruta. */
+    @Transactional
+    public void onOrderDelivered(Long orderId) {
+        Shipment shipment = findShipmentByOrder(orderId);
+        if (shipment == null) return;
+        if (shipment.getDeliveryStatus().canTransitionTo(DeliveryStatus.DELIVERED)) {
+            shipment.setDeliveryStatus(DeliveryStatus.DELIVERED);
+            shipment.setActualDelivery(LocalDateTime.now());
+            shipmentRepository.save(shipment);
+        }
+        checkRouteCompletion(shipment.getRoute());
+    }
+
+    /** donation.cancelled: la donación se canceló. Marca el envío CANCELLED y reevalúa la ruta. */
+    @Transactional
+    public void onDonationCancelled(Long orderId) {
+        Shipment shipment = findShipmentByOrder(orderId);
+        if (shipment == null) return;
+        shipment.setDeliveryStatus(DeliveryStatus.CANCELLED);
+        shipmentRepository.save(shipment);
+        checkRouteCompletion(shipment.getRoute());
+    }
+
+    /** Cierra la ruta cuando todos sus envíos están en estado terminal:
+     *  COMPLETED si al menos uno fue entregado, CANCELLED si ninguno. */
+    private void checkRouteCompletion(Route route) {
+        if (route == null) return;
+        List<Shipment> shipments = shipmentRepository.findByRouteId(route.getId());
+        if (shipments.isEmpty()) return;
+        boolean allTerminal = shipments.stream()
+                .allMatch(s -> TERMINAL_STATES.contains(s.getDeliveryStatus()));
+        if (!allTerminal) return;
+        boolean anyDelivered = shipments.stream()
+                .anyMatch(s -> s.getDeliveryStatus() == DeliveryStatus.DELIVERED);
+        route.setStatus(anyDelivered ? RouteStatus.COMPLETED : RouteStatus.CANCELLED);
+        routeRepository.save(route);
+        log.info("Ruta {} cerrada como {}", route.getId(), route.getStatus());
+    }
+
+    private Shipment findShipmentByOrder(Long orderId) {
+        Shipment shipment = shipmentRepository.findByOrderId(String.valueOf(orderId)).orElse(null);
+        if (shipment == null) {
+            log.warn("No existe shipment para la orden {} (evento de ciclo de ruta ignorado)", orderId);
+        }
+        return shipment;
     }
 
     @Transactional

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Confirma la recepción de tu donación</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center" style="padding:40px 0;">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+          <tr>
+            <td style="background:#1565c0;padding:24px 32px;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;">Donatech ✅</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 16px;color:#1565c0;font-size:20px;">¿Recibiste tu donación?</h2>
+              <p style="color:#555;font-size:15px;line-height:1.6;">
+                Hola <strong th:text="${beneficiaryName}">beneficiario</strong>, el transportista
+                registró la entrega de tu kit <strong th:text="${kitNames}">kits</strong>.
+                Por favor confirma que la recibiste para cerrar el proceso.
+              </p>
+
+              <div style="text-align:center;margin:28px 0;">
+                <a th:href="${confirmLink}"
+                   style="display:inline-block;background:#2e7d32;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:16px;font-weight:bold;">
+                  Confirmar entrega
+                </a>
+              </div>
+
+              <table width="100%" cellpadding="12" cellspacing="0" style="background:#fff8e1;border-radius:8px;margin:16px 0;">
+                <tr>
+                  <td>
+                    <p style="margin:0;color:#8d6e63;font-size:14px;line-height:1.6;">
+                      ⚠️ ¿No la recibiste o hay un problema? No confirmes y
+                      <a th:href="${supportLink}" style="color:#1565c0;font-weight:bold;">repórtalo a soporte</a>.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="color:#888;font-size:13px;">Orden #<span th:text="${orderId}"></span> — Gracias por confiar en Donatech.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f4f4f4;padding:16px 32px;text-align:center;">
+              <p style="margin:0;color:#aaa;font-size:12px;">Donatech — Hub Logístico de Donaciones</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

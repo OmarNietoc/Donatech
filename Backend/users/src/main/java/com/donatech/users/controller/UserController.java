@@ -1,6 +1,9 @@
 package com.donatech.users.controller;
 
 import com.donatech.users.controller.response.MessageResponse;
+import com.donatech.users.dto.AdminUserUpdateDto;
+import com.donatech.users.dto.ProfileResponseDto;
+import com.donatech.users.dto.ProfileUpdateDto;
 import com.donatech.users.dto.UserDto;
 import com.donatech.users.repository.RoleRepository;
 import com.donatech.users.service.RoleService;
@@ -38,6 +41,45 @@ import com.donatech.users.model.Role;
 public class UserController {
 
     private final UserService userService;
+    private final UserRepository userRepository;
+
+    public record CollaboratorDto(Long id, String name, String email) {}
+
+    @Operation(summary = "Listar colaboradores (voluntarios activos)",
+            description = "Para asignación de entregas. Devuelve voluntarios activos.")
+    @GetMapping("/collaborators")
+    @PreAuthorize("hasAnyRole('ADMIN','VOLUNTARIO')")
+    public ResponseEntity<List<CollaboratorDto>> getCollaborators() {
+        List<CollaboratorDto> list = userRepository.findByRole_NameAndStatus("ROLE_VOLUNTARIO", 1).stream()
+                .map(u -> new CollaboratorDto(u.getId(), u.getName(), u.getEmail()))
+                .toList();
+        return ResponseEntity.ok(list);
+    }
+
+    // ─── Perfil propio (cualquier usuario autenticado) ──────────────────────
+
+    @Operation(summary = "Obtener mi perfil", description = "Datos del usuario autenticado (incluye datos de beneficiario/empresa si aplica).")
+    @GetMapping("/me")
+    public ResponseEntity<ProfileResponseDto> getMyProfile(Authentication authentication) {
+        return ResponseEntity.ok(userService.getOwnProfile(authentication.getName()));
+    }
+
+    @Operation(summary = "Actualizar mi perfil", description = "Edita los datos propios. El email, rol y RUT no se pueden modificar.")
+    @PutMapping("/me")
+    public ResponseEntity<ProfileResponseDto> updateMyProfile(
+            @Valid @RequestBody ProfileUpdateDto dto, Authentication authentication) {
+        return ResponseEntity.ok(userService.updateOwnProfile(authentication.getName(), dto));
+    }
+
+    @Operation(summary = "Subir mi avatar")
+    @PostMapping(value = "/me/avatar", consumes = "multipart/form-data")
+    public ResponseEntity<MessageResponse> uploadMyAvatar(
+            @RequestParam("file") MultipartFile file, Authentication authentication) throws IOException {
+        String email = authentication.getName();
+        Long id = userService.getUserByEmail(email).getId();
+        userService.uploadAvatar(id, file, email);
+        return ResponseEntity.ok(new MessageResponse("Avatar actualizado correctamente."));
+    }
 
     @Operation(summary = "Listar todos los usuarios", description = "Retorna todos los usuarios registrados en la plataforma.")
     @ApiResponses(value = {
@@ -100,8 +142,8 @@ public class UserController {
     })
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<MessageResponse> updateUser(@PathVariable Long id, @Valid @RequestBody UserDto userDetails) {
-        userService.updateUser(id, userDetails);
+    public ResponseEntity<MessageResponse> updateUser(@PathVariable Long id, @Valid @RequestBody AdminUserUpdateDto userDetails) {
+        userService.adminUpdate(id, userDetails);
         return ResponseEntity.ok(new MessageResponse("Usuario actualizado exitosamente."));
     }
 

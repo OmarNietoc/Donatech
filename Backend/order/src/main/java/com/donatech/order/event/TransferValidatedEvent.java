@@ -1,7 +1,7 @@
 package com.donatech.order.event;
 
 public record TransferValidatedEvent(
-        Long orderId,
+        Long donationId,
         boolean approved,
         String motivo
 ) {}

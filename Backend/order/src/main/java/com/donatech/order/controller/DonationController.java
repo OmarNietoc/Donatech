@@ -1,7 +1,9 @@
 package com.donatech.order.controller;
 
+import com.donatech.order.controller.response.DonationResponse;
 import com.donatech.order.controller.response.MessageResponse;
 import com.donatech.order.controller.response.OrderResponse;
+import com.donatech.order.dto.DonationDto;
 import com.donatech.order.dto.OrderDto;
 import com.donatech.order.model.DonationStatus;
 import com.donatech.order.service.OrderService;
@@ -32,27 +34,43 @@ public class DonationController {
         return orderService.getAllOrders();
     }
 
-    @Operation(summary = "Obtener donación por ID")
+    @Operation(summary = "Obtener donación por ID (con sus órdenes hijas)")
     @GetMapping("/{id}")
-    public ResponseEntity<OrderResponse> getById(@PathVariable Long id) {
-        return orderService.getOrderDtoById(id);
+    public ResponseEntity<DonationResponse> getById(@PathVariable Long id) {
+        return orderService.getDonationDtoById(id);
     }
 
-    @Operation(summary = "Crear donación")
+    @Operation(summary = "Crear donación", description = "Crea un pago que agrupa una orden por campaña.")
     @PostMapping
-    public ResponseEntity<OrderResponse> create(@Valid @RequestBody OrderDto dto) {
-        return orderService.createOrder(dto);
+    public ResponseEntity<DonationResponse> create(@Valid @RequestBody DonationDto dto) {
+        return orderService.createDonation(dto);
     }
 
     @Operation(summary = "Crear donación y adjuntar comprobante en una sola operación atómica",
             description = "Crea la orden y adjunta el comprobante de transferencia dentro de la misma " +
                     "transacción: la orden queda EN_VALIDACION_TRANSFERENCIA. Evita órdenes huérfanas.")
     @PostMapping(value = "/submit", consumes = "multipart/form-data")
-    public ResponseEntity<OrderResponse> submit(
-            @Valid @RequestPart("order") OrderDto dto,
+    public ResponseEntity<DonationResponse> submit(
+            @Valid @RequestPart("donation") DonationDto dto,
             @RequestPart("file") MultipartFile file,
             @RequestHeader(value = "X-User-Email", required = false) String uploaderEmail) throws IOException {
         return orderService.submitDonation(dto, file, uploaderEmail);
+    }
+
+    @Operation(summary = "Subir comprobante de transferencia de la donación",
+            description = "Adjunta el comprobante (un solo pago) y pasa la donación a EN_VALIDACION_TRANSFERENCIA.")
+    @PostMapping(value = "/{id}/transfer-proof", consumes = "multipart/form-data")
+    public ResponseEntity<MessageResponse> uploadProof(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @RequestHeader(value = "X-User-Email", defaultValue = "unknown") String uploaderEmail) throws IOException {
+        return orderService.uploadDonationProof(id, file, uploaderEmail);
+    }
+
+    @Operation(summary = "Descargar comprobante de transferencia de la donación")
+    @GetMapping("/{id}/transfer-proof")
+    public ResponseEntity<byte[]> getProof(@PathVariable Long id) throws IOException {
+        return orderService.getDonationProof(id);
     }
 
     @Operation(summary = "Actualizar estado de donación")
@@ -66,8 +84,8 @@ public class DonationController {
 
     @Operation(summary = "Donaciones por donante (email)")
     @GetMapping("/by-donor")
-    public ResponseEntity<List<OrderResponse>> getByDonor(@RequestParam String email) {
-        return orderService.getByDonorEmail(email);
+    public ResponseEntity<List<DonationResponse>> getByDonor(@RequestParam String email) {
+        return orderService.getDonationsForDonor(email);
     }
 
     @Operation(summary = "Donaciones por beneficiario")
@@ -95,18 +113,18 @@ public class DonationController {
     }
 
     @Operation(summary = "Cancelar donación",
-            description = "El donante (dueño) o un administrador cancela la donación.")
+            description = "El donante (dueño) o un administrador cancela la donación y sus órdenes no terminales.")
     @PatchMapping("/{id}/cancel")
     public ResponseEntity<MessageResponse> cancel(@PathVariable Long id,
                                                   @RequestParam(required = false) String motivo,
                                                   @RequestParam(required = false) Long changedById) {
-        return orderService.cancelOrder(id, motivo, changedById);
+        return orderService.cancelDonation(id, motivo, changedById);
     }
 
-    @Operation(summary = "Eliminar donación")
+    @Operation(summary = "Eliminar donación (y sus órdenes hijas)")
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<MessageResponse> delete(@PathVariable Long id) {
-        return orderService.deleteOrder(id);
+        return orderService.deleteDonation(id);
     }
 }

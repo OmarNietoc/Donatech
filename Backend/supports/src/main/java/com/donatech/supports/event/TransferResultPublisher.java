@@ -15,7 +15,7 @@ public class TransferResultPublisher {
 
     public void publish(TransferResultEvent event) {
         String routingKey = event.approved() ? "transfer.validated" : "transfer.rejected";
-        log.info("Publicando {} para orden id={}", routingKey, event.orderId());
+        log.info("Publicando {} para donación id={}", routingKey, event.donationId());
         rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, routingKey, event);
     }
 }

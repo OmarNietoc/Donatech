@@ -30,4 +30,14 @@ public class UserServiceClientFallback implements UserServiceClient {
     public Map<String, Long> createCompanyDetails(CreateCompanyInternalDto dto) {
         throw new RuntimeException("users-service no disponible — createCompanyDetails fallback");
     }
+
+    @Override
+    public void deleteUser(Long id) {
+        throw new RuntimeException("users-service no disponible — deleteUser fallback");
+    }
+
+    @Override
+    public void updatePassword(Long id, Map<String, String> body) {
+        throw new RuntimeException("users-service no disponible — updatePassword fallback");
+    }
 }

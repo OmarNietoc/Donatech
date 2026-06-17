@@ -23,11 +23,12 @@ public class DataInitializer implements CommandLineRunner {
 
         roleRepository.findByName("ROLE_ADMIN").ifPresent(adminRole -> {
             User admin = new User(
-                    "Administrador Donatech",
+                    "Administrador",
                     "admin@donatech.cl",
                     passwordEncoder.encode("Admin@2024"),
                     adminRole,
                     1);
+            admin.setApellido("Donatech");
             userRepository.save(admin);
         });
     }

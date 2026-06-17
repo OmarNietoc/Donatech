@@ -3,7 +3,7 @@ package com.donatech.supports.event;
 import java.time.LocalDateTime;
 
 public record TransferSubmittedEvent(
-        Long orderId,
+        Long donationId,
         String userEmail,
         LocalDateTime submittedAt
 ) {}

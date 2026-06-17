@@ -32,6 +32,38 @@ public class RabbitConfig {
         return BindingBuilder.bind(orderReadyQueue).to(donatechExchange).with("order.ready_for_shipping");
     }
 
+    // ── Ciclo de vida de la ruta: sincroniza estado de ruta/envío con la orden ──
+
+    @Bean
+    public Queue orderShippedQueue() {
+        return new Queue("shipping.order.shipped", true);
+    }
+
+    @Bean
+    public Binding orderShippedBinding(Queue orderShippedQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(orderShippedQueue).to(donatechExchange).with("order.shipped");
+    }
+
+    @Bean
+    public Queue orderDeliveredQueue() {
+        return new Queue("shipping.order.delivered", true);
+    }
+
+    @Bean
+    public Binding orderDeliveredBinding(Queue orderDeliveredQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(orderDeliveredQueue).to(donatechExchange).with("order.delivered");
+    }
+
+    @Bean
+    public Queue donationCancelledQueue() {
+        return new Queue("shipping.donation.cancelled", true);
+    }
+
+    @Bean
+    public Binding donationCancelledBinding(Queue donationCancelledQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(donationCancelledQueue).to(donatechExchange).with("donation.cancelled");
+    }
+
     @Bean
     public Jackson2JsonMessageConverter jsonMessageConverter(ObjectMapper objectMapper) {
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter(objectMapper);

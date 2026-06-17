@@ -1,8 +1,6 @@
 package com.donatech.shipping.service;
 
 import com.donatech.shipping.enums.DeliveryStatus;
-import com.donatech.shipping.event.OrderShippedEvent;
-import com.donatech.shipping.event.ShippingEventPublisher;
 import com.donatech.shipping.exception.ShipmentNotFoundException;
 import com.donatech.shipping.model.Shipment;
 import com.donatech.shipping.repository.RouteRepository;
@@ -21,7 +19,6 @@ public class ShipmentService {
 
     private final ShipmentRepository shipmentRepository;
     private final RouteRepository routeRepository;
-    private final ShippingEventPublisher shippingEventPublisher;
 
     public List<Shipment> getAllShipments(DeliveryStatus deliveryStatus) {
         if (deliveryStatus != null) {
@@ -60,15 +57,9 @@ public class ShipmentService {
         if (newStatus == DeliveryStatus.DELIVERED) {
             existing.setActualDelivery(java.time.LocalDateTime.now());
         }
-        if (newStatus == DeliveryStatus.DISPATCHED) {
-            shippingEventPublisher.publishOrderShipped(
-                    new OrderShippedEvent(
-                            Long.parseLong(existing.getOrderId()),
-                            existing.getCustomerEmail(),
-                            existing.getTrackingNumber()
-                    )
-            );
-        }
+        // El correo "en camino" (order.shipped) lo publica order ms en markInTransit
+        // (el colaborador opera el ciclo de entrega vía order). shipping no re-publica
+        // para evitar correos duplicados.
         return shipmentRepository.save(existing);
     }
 

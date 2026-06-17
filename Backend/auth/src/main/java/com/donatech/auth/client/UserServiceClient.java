@@ -5,7 +5,9 @@ import com.donatech.auth.dto.CreateCompanyInternalDto;
 import com.donatech.auth.dto.RegisterRequest;
 import com.donatech.auth.dto.UserCredentialsDto;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -26,4 +28,10 @@ public interface UserServiceClient {
 
     @PostMapping("/internal/company")
     Map<String, Long> createCompanyDetails(@RequestBody CreateCompanyInternalDto dto);
+
+    @DeleteMapping("/internal/{id}")
+    void deleteUser(@PathVariable("id") Long id);
+
+    @org.springframework.web.bind.annotation.PutMapping("/internal/{id}/password")
+    void updatePassword(@PathVariable("id") Long id, @RequestBody Map<String, String> body);
 }

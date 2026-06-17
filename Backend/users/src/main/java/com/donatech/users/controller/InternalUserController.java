@@ -71,8 +71,11 @@ public class InternalUserController {
         String direccion = beneficiaryRepository.findByUserId(id)
                 .map(Beneficiary::getDireccionEntrega)
                 .orElse(null);
+        String comuna = user.getComuna() != null ? user.getComuna().getName() : null;
+        String region = user.getRegion() != null ? user.getRegion().getName() : null;
         return ResponseEntity.ok(new ContactDto(
-                user.getId(), user.getName(), user.getEmail(), user.getPhone(), direccion));
+                user.getId(), user.getName(), user.getApellido(), user.getEmail(),
+                user.getPhone(), direccion, comuna, region));
     }
 
     @PostMapping("/create")
@@ -91,6 +94,7 @@ public class InternalUserController {
 
         User user = new User(dto.getName(), dto.getEmail(), dto.getPassword(),
                 role, 1, null, dto.getPhone(), region, comuna);
+        user.setApellido(dto.getApellido());
 
         userRepository.save(user);
         return ResponseEntity.status(HttpStatus.CREATED).body(toCredentialsDto(user));
@@ -103,11 +107,36 @@ public class InternalUserController {
                 .body(Map.of("userId", dto.getUserId()));
     }
 
+    // Datos de empresa por userId — consumido por order-service (Feign) para el certificado.
+    @GetMapping("/company/{userId}")
+    public ResponseEntity<com.donatech.users.model.CompanyDetails> getCompanyInternal(@PathVariable Long userId) {
+        return companyDetailsService.getByUserId(userId);
+    }
+
     @PostMapping("/beneficiary")
     public ResponseEntity<Map<String, Long>> createBeneficiary(@Valid @RequestBody BeneficiaryDto dto) {
         Beneficiary b = beneficiaryService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of("beneficiaryId", b.getId(), "userId", b.getUser().getId()));
+    }
+
+    // Cambia el hash de contraseña (lo envía auth ya encriptado tras verificar la actual).
+    @PutMapping("/{id}/password")
+    public ResponseEntity<Void> updatePassword(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado: " + id));
+        user.setPassword(body.get("password"));
+        userRepository.save(user);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Compensación de registro distribuido: si auth crea la cuenta pero falla la creación
+    // del perfil (beneficiario/empresa), borra la cuenta huérfana para no dejar inconsistencia.
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        beneficiaryRepository.findByUserId(id).ifPresent(beneficiaryRepository::delete);
+        userRepository.findById(id).ifPresent(userRepository::delete);
+        return ResponseEntity.noContent().build();
     }
 
     private UserCredentialsDto toCredentialsDto(User user) {

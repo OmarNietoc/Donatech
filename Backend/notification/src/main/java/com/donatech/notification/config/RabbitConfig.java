@@ -122,6 +122,26 @@ public class RabbitConfig {
     }
 
     @Bean
+    public Queue deliveryConfirmRequestQueue() {
+        return new Queue("notification.delivery.confirm-request", true);
+    }
+
+    @Bean
+    public Binding deliveryConfirmRequestBinding(Queue deliveryConfirmRequestQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(deliveryConfirmRequestQueue).to(donatechExchange).with("delivery.confirm-request");
+    }
+
+    @Bean
+    public Queue routeAssignedQueue() {
+        return new Queue("notification.route.assigned", true);
+    }
+
+    @Bean
+    public Binding routeAssignedBinding(Queue routeAssignedQueue, TopicExchange donatechExchange) {
+        return BindingBuilder.bind(routeAssignedQueue).to(donatechExchange).with("route.assigned");
+    }
+
+    @Bean
     public Jackson2JsonMessageConverter jsonMessageConverter() {
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter();
         DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();

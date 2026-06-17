@@ -9,9 +9,16 @@ import lombok.Data;
 public class RegisterRequest {
 
     @NotBlank
-    @Size(min = 4, max = 100)
-    @Schema(description = "Nombre completo del usuario", example = "Juan Pérez")
+    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+$", message = "El nombre solo puede contener letras, sin espacios")
+    @Size(min = 2, max = 100)
+    @Schema(description = "Nombre del usuario", example = "Juan")
     private String name;
+
+    @NotBlank
+    @Pattern(regexp = "^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+$", message = "El apellido solo puede contener letras, sin espacios")
+    @Size(min = 2, max = 100)
+    @Schema(description = "Apellido del usuario", example = "Pérez")
+    private String apellido;
 
     @NotBlank
     @Email

@@ -69,6 +69,7 @@ public class AuthController {
         }
         RegisterRequest userRequest = new RegisterRequest();
         userRequest.setName(request.getName());
+        userRequest.setApellido(request.getApellido());
         userRequest.setEmail(request.getEmail());
         userRequest.setPassword(passwordEncoder.encode(request.getPassword()));
         userRequest.setRoleId(4L);
@@ -78,12 +79,19 @@ public class AuthController {
 
         UserCredentialsDto created = userServiceClient.createUser(userRequest);
 
-        userServiceClient.createBeneficiary(new CreateBeneficiaryInternalDto(
-                created.getId(),
-                request.getRut(),
-                request.getDireccionEntrega(),
-                request.getObservaciones()
-        ));
+        try {
+            userServiceClient.createBeneficiary(new CreateBeneficiaryInternalDto(
+                    created.getId(),
+                    request.getRut(),
+                    request.getDireccionEntrega(),
+                    request.getObservaciones()
+            ));
+        } catch (RuntimeException ex) {
+            // Compensación: la cuenta ya se creó pero falló el perfil → borrar cuenta huérfana.
+            safeDeleteUser(created.getId());
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo completar el registro del beneficiario. Intenta nuevamente.");
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new MessageResponse("Beneficiario registrado exitosamente"));
@@ -94,6 +102,7 @@ public class AuthController {
     public ResponseEntity<MessageResponse> registerOrganization(@Valid @RequestBody RegisterOrganizationRequest request) {
         RegisterRequest userRequest = new RegisterRequest();
         userRequest.setName(request.getName());
+        userRequest.setApellido(request.getApellido());
         userRequest.setEmail(request.getEmail());
         userRequest.setPassword(passwordEncoder.encode(request.getPassword()));
         userRequest.setRoleId(5L);
@@ -103,16 +112,47 @@ public class AuthController {
 
         UserCredentialsDto created = userServiceClient.createUser(userRequest);
 
-        userServiceClient.createCompanyDetails(new CreateCompanyInternalDto(
-                created.getId(),
-                request.getRut(),
-                request.getRazonSocial(),
-                request.getGiro(),
-                request.getDireccionLegal()
-        ));
+        try {
+            userServiceClient.createCompanyDetails(new CreateCompanyInternalDto(
+                    created.getId(),
+                    request.getRut(),
+                    request.getRazonSocial(),
+                    request.getGiro(),
+                    request.getDireccionLegal()
+            ));
+        } catch (RuntimeException ex) {
+            // Compensación: borrar la cuenta huérfana si falló la creación del perfil de empresa.
+            safeDeleteUser(created.getId());
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo completar el registro de la organización. Intenta nuevamente.");
+        }
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new MessageResponse("Organización registrada exitosamente"));
+    }
+
+    // Borra la cuenta recién creada como compensación; si la compensación misma falla,
+    // no enmascara el error original (solo registra y sigue).
+    private void safeDeleteUser(Long userId) {
+        try {
+            userServiceClient.deleteUser(userId);
+        } catch (RuntimeException ignored) {
+            // best-effort: el error de registro se propaga igualmente al cliente.
+        }
+    }
+
+    @Operation(summary = "Cambiar contraseña", description = "El usuario autenticado cambia su contraseña verificando la actual.")
+    @PostMapping("/change-password")
+    public ResponseEntity<MessageResponse> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request, Authentication authentication) {
+        String email = authentication.getName();
+        UserCredentialsDto creds = userServiceClient.getCredentialsByEmail(email);
+        if (creds == null || !passwordEncoder.matches(request.getCurrentPassword(), creds.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña actual no es correcta.");
+        }
+        userServiceClient.updatePassword(creds.getId(),
+                Map.of("password", passwordEncoder.encode(request.getNewPassword())));
+        return ResponseEntity.ok(new MessageResponse("Contraseña actualizada correctamente."));
     }
 
     @Operation(summary = "Refresh token", description = "Genera nuevo JWT con el token actual válido")

@@ -19,7 +19,7 @@ public class DonationEventPublisher {
     }
 
     public void publishTransferSubmitted(TransferSubmittedEvent event) {
-        log.info("Publicando transfer.submitted para orden id={}", event.orderId());
+        log.info("Publicando transfer.submitted para donación id={}", event.donationId());
         rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "transfer.submitted", event);
     }
 
@@ -56,5 +56,10 @@ public class DonationEventPublisher {
     public void publishDeliveryIncoming(BeneficiaryShipmentEvent event) {
         log.info("Publicando delivery.incoming para orden id={}", event.orderId());
         rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "delivery.incoming", event);
+    }
+
+    public void publishDeliveryConfirmRequest(DeliveryConfirmRequestEvent event) {
+        log.info("Publicando delivery.confirm-request para orden id={}", event.orderId());
+        rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "delivery.confirm-request", event);
     }
 }

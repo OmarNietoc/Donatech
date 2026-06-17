@@ -17,4 +17,9 @@ public class ShippingEventPublisher {
         log.info("Publicando order.shipped para orden id={}", event.orderId());
         rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "order.shipped", event);
     }
+
+    public void publishRouteAssigned(RouteAssignedEvent event) {
+        log.info("Publicando route.assigned ruta={} colaborador={}", event.routeId(), event.collaboratorId());
+        rabbitTemplate.convertAndSend(RabbitConfig.EXCHANGE, "route.assigned", event);
+    }
 }

@@ -8,7 +8,10 @@ import lombok.Data;
 public class ContactDto {
     private Long id;
     private String name;
+    private String apellido;
     private String email;
     private String phone;
     private String direccion;
+    private String comuna;
+    private String region;
 }

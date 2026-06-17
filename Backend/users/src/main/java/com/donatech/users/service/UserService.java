@@ -1,11 +1,18 @@
 package com.donatech.users.service;
 
 
+import com.donatech.users.dto.AdminUserUpdateDto;
+import com.donatech.users.dto.ProfileResponseDto;
+import com.donatech.users.dto.ProfileUpdateDto;
 import com.donatech.users.dto.UserDto;
 import com.donatech.users.exception.ResourceNotFoundException;
+import com.donatech.users.model.Beneficiary;
+import com.donatech.users.model.CompanyDetails;
 import com.donatech.users.model.User;
 import com.donatech.users.model.Role;
 
+import com.donatech.users.repository.BeneficiaryRepository;
+import com.donatech.users.repository.CompanyDetailsRepository;
 import com.donatech.users.repository.ComunaRepository;
 import com.donatech.users.repository.RegionRepository;
 import com.donatech.users.repository.UserRepository;
@@ -14,6 +21,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -29,6 +37,8 @@ public class UserService {
     private final ComunaRepository comunaRepository;
     private final RegionRepository regionRepository;
     private final ImageStorageService imageStorageService;
+    private final BeneficiaryRepository beneficiaryRepository;
+    private final CompanyDetailsRepository companyDetailsRepository;
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
@@ -100,24 +110,87 @@ public class UserService {
                 regionRepository.getRegionById(userDto.getRegion()),
                 comunaRepository.getComunaById(userDto.getComuna())
         );
+        user.setApellido(userDto.getApellido());
 
         userRepository.save(user);
     }
 
-    public void updateUser(Long id, UserDto userDetails) {
-
+    // Edición administrativa: nombre, apellido, correo, rol y estado. NO toca la contraseña.
+    public void adminUpdate(Long id, AdminUserUpdateDto dto) {
         User user = getUserById(id);
-
-        Role role = emailAndRoleValidator(userDetails.getEmail(), userDetails.getRole(), id);
-
-        user.setName(userDetails.getName());
-        user.setEmail(userDetails.getEmail());
-        user.setPassword(userDetails.getPassword());
-        user.setStatus(userDetails.getStatus());
+        Role role = emailAndRoleValidator(dto.getEmail(), dto.getRoleId(), id);
+        user.setName(dto.getName());
+        user.setApellido(dto.getApellido());
+        user.setEmail(dto.getEmail());
         user.setRole(role);
-        user.setImagen(userDetails.getImagen());
-
+        user.setStatus(dto.getStatus());
         userRepository.save(user);
+    }
+
+    // ─── Perfil propio (self-service) ───────────────────────────────────────
+    // Identidad por email (authentication.name). El rut NUNCA se modifica aquí.
+
+    @Transactional(readOnly = true)
+    public ProfileResponseDto getOwnProfile(String email) {
+        return toProfileDto(getUserByEmail(email));
+    }
+
+    @Transactional
+    public ProfileResponseDto updateOwnProfile(String email, ProfileUpdateDto dto) {
+        User user = getUserByEmail(email);
+        user.setName(dto.getName());
+        user.setApellido(dto.getApellido());
+        user.setPhone(dto.getPhone());
+        user.setRegion(dto.getRegionId() != null ? regionRepository.getRegionById(dto.getRegionId()) : null);
+        user.setComuna(dto.getComunaId() != null ? comunaRepository.getComunaById(dto.getComunaId()) : null);
+        userRepository.save(user);
+
+        beneficiaryRepository.findByUserId(user.getId()).ifPresent(b -> {
+            b.setDireccionEntrega(dto.getDireccionEntrega());
+            b.setObservaciones(dto.getObservaciones());
+            beneficiaryRepository.save(b);   // rut intacto
+        });
+
+        companyDetailsRepository.findByUserId(user.getId()).ifPresent(c -> {
+            if (dto.getRazonSocial() != null && !dto.getRazonSocial().isBlank()) {
+                c.setRazonSocial(dto.getRazonSocial());
+            }
+            c.setGiro(dto.getGiro());
+            c.setDireccionLegal(dto.getDireccionLegal());
+            companyDetailsRepository.save(c);   // rut intacto
+        });
+
+        return toProfileDto(user);
+    }
+
+    public void updatePassword(Long id, String encodedPassword) {
+        User user = getUserById(id);
+        user.setPassword(encodedPassword);
+        userRepository.save(user);
+    }
+
+    private ProfileResponseDto toProfileDto(User user) {
+        Beneficiary benef = beneficiaryRepository.findByUserId(user.getId()).orElse(null);
+        CompanyDetails company = companyDetailsRepository.findByUserId(user.getId()).orElse(null);
+        String rut = benef != null ? benef.getRut() : (company != null ? company.getRut() : null);
+        return new ProfileResponseDto(
+                user.getId(),
+                user.getName(),
+                user.getApellido(),
+                user.getEmail(),
+                user.getPhone(),
+                user.getRegion() != null ? user.getRegion().getId() : null,
+                user.getRegion() != null ? user.getRegion().getName() : null,
+                user.getComuna() != null ? user.getComuna().getId() : null,
+                user.getComuna() != null ? user.getComuna().getName() : null,
+                user.getRole() != null ? user.getRole().getName() : null,
+                rut,
+                benef != null ? benef.getDireccionEntrega() : null,
+                benef != null ? benef.getObservaciones() : null,
+                company != null ? company.getRazonSocial() : null,
+                company != null ? company.getGiro() : null,
+                company != null ? company.getDireccionLegal() : null
+        );
     }
 
     public void updateUserStatus(Long id, Integer status) {

@@ -21,7 +21,7 @@ public class Shipment {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(name = "order_id", nullable = false)
+    @Column(name = "order_id", nullable = false, unique = true)
     private String orderId;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -34,6 +34,12 @@ public class Shipment {
 
     @Column(name = "customer_email")
     private String customerEmail;
+
+    @Column(name = "phone")
+    private String phone;
+
+    @Column(name = "beneficiary_id")
+    private Long beneficiaryId;
 
     @Column(name = "shipping_address", nullable = false)
     private String shippingAddress;

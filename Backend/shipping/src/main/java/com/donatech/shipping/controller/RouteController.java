@@ -50,6 +50,9 @@ public class RouteController {
         Route createdRoute = routeService.createRoute(
                 request.getCompanyId(),
                 request.getCarrierId(),
+                request.getCollaboratorId(),
+                request.getCollaboratorNombre(),
+                request.getCollaboratorEmail(),
                 request.getOriginAddress(),
                 request.getShipmentIds(),
                 request.isOptimizeRoute()

@@ -187,8 +187,27 @@ public class OrderController {
     @PatchMapping("/{id}/in-transit")
     public ResponseEntity<MessageResponse> markInTransit(
             @PathVariable Long id,
-            @RequestParam(required = false) Long changedById) {
-        return orderService.markInTransit(id, changedById);
+            @RequestParam(required = false) Long changedById,
+            @RequestHeader(value = "X-User-Id", required = false) Long callerId,
+            @RequestHeader(value = "X-User-Roles", defaultValue = "") String roles) {
+        return orderService.markInTransit(id, changedById, callerId, roles.contains("ROLE_ADMIN"));
+    }
+
+    @Operation(summary = "Entregas asignadas a un colaborador")
+    @PreAuthorize("hasAnyRole('ADMIN','VOLUNTARIO')")
+    @GetMapping("/by-collaborator/{collaboratorId}")
+    public ResponseEntity<List<OrderResponse>> getByCollaborator(@PathVariable Long collaboratorId) {
+        return orderService.getByCollaborator(collaboratorId);
+    }
+
+    @Operation(summary = "Entregas por ruta (ADMIN = todas; VOLUNTARIO = solo las suyas)",
+            description = "Órdenes en estados de entrega, enriquecidas con datos del beneficiario, para la UI por ruta.")
+    @PreAuthorize("hasAnyRole('ADMIN','VOLUNTARIO')")
+    @GetMapping("/deliveries")
+    public ResponseEntity<List<OrderResponse>> getDeliveries(
+            @RequestHeader(value = "X-User-Id", required = false) Long callerId,
+            @RequestHeader(value = "X-User-Roles", defaultValue = "") String roles) {
+        return orderService.getDeliveries(callerId, roles.contains("ROLE_ADMIN"));
     }
 
     @Operation(summary = "Subir evidencia de entrega",
@@ -200,8 +219,10 @@ public class OrderController {
             @PathVariable Long id,
             @RequestParam(value = "photo", required = false) MultipartFile photo,
             @RequestParam(value = "document", required = false) MultipartFile document,
-            @RequestHeader(value = "X-User-Email", defaultValue = "unknown") String uploaderEmail) throws IOException {
-        return orderService.uploadDeliveryProof(id, photo, document, uploaderEmail);
+            @RequestHeader(value = "X-User-Email", defaultValue = "unknown") String uploaderEmail,
+            @RequestHeader(value = "X-User-Id", required = false) Long callerId,
+            @RequestHeader(value = "X-User-Roles", defaultValue = "") String roles) throws IOException {
+        return orderService.uploadDeliveryProof(id, photo, document, uploaderEmail, callerId, roles.contains("ROLE_ADMIN"));
     }
 
     @Operation(summary = "Descargar foto de entrega")
@@ -216,10 +237,17 @@ public class OrderController {
         return orderService.getDeliveryDocument(id);
     }
 
+    @Operation(summary = "Descargar certificado de donación (PDF)",
+            description = "Solo donante ORGANIZACION con pago validado. Llenado con los datos de la empresa.")
+    @GetMapping("/{id}/donation-certificate")
+    public ResponseEntity<byte[]> getDonationCertificate(@PathVariable Long id) {
+        return orderService.getDonationCertificate(id);
+    }
+
     @Operation(summary = "Confirmar entrega",
-            description = "Admin confirma que la foto coincide. Cambia estado a ENTREGADA.")
+            description = "El admin o el beneficiario dueño confirma la recepción. Cambia estado a ENTREGADA.")
     @ApiResponse(responseCode = "200", description = "Entrega confirmada")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','BENEFICIARIO','ORGANIZACION')")
     @PatchMapping("/{id}/confirm-delivery")
     public ResponseEntity<MessageResponse> confirmDelivery(
             @PathVariable Long id,

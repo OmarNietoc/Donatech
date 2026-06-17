@@ -94,7 +94,7 @@ public class CampaignService {
                 .build();
     }
 
-    public ResponseEntity<MessageResponse> create(@Valid CampaignRequestDto dto) {
+    public ResponseEntity<CampaignResponseDto> create(@Valid CampaignRequestDto dto) {
         UserStatusDto user = usersClient.getUserById(dto.getBeneficiaryId());
         if (user == null || user.status() == null || user.status() != 1) {
             throw new IllegalArgumentException("El usuario no está activo para crear campañas.");
@@ -137,8 +137,7 @@ public class CampaignService {
                 campaign.getFechaCreacion()
         ));
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new MessageResponse("Campaña creada y enviada a validación. ID: " + campaign.getId()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toDto(campaign));
     }
 
     public ResponseEntity<MessageResponse> addKit(Long campaignId, @Valid CampaignKitDto dto) {

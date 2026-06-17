@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface TrackingHistoryRepository extends JpaRepository<TrackingHistory, Long> {
     List<TrackingHistory> findByOrder_IdOrderByFechaCambioAsc(Long orderId);
+
+    void deleteByOrder_Id(Long orderId);
 }

@@ -18,6 +18,7 @@ import java.util.List;
 public class OrderResponse {
 
     private Long id;
+    private Long donationId;
     private String userEmail;
     private String donorName;
     private DonationStatus estado;
@@ -30,6 +31,12 @@ public class OrderResponse {
     private String campaignTitulo;
     private Long beneficiaryId;
     private String beneficiaryName;
+    private String beneficiaryApellido;
+    private String beneficiaryDireccion;
+    private String beneficiaryComuna;
+    private String beneficiaryRegion;
+    private String routeId;
+    private String routeName;
     private Long zonaCatastrofeId;
     private String rejectionReason;
     private LocalDateTime deliveryConfirmedAt;
