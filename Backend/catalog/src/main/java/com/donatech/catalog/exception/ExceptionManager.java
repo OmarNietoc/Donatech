@@ -29,7 +29,7 @@ public class ExceptionManager {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> handleDataIntegrity(DataIntegrityViolationException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("message", "Ya existe un registro con ese identificador. Usa uno diferente."));
+                .body(Map.of("message", "Operación no permitida: el registro está siendo usado por otros datos o viola una restricción de integridad."));
     }
 
     //404

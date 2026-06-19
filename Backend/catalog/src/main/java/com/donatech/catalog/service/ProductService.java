@@ -3,11 +3,14 @@ package com.donatech.catalog.service;
 import com.donatech.catalog.controller.response.MessageResponse;
 import com.donatech.catalog.dto.ProductDto;
 import com.donatech.catalog.dto.response.ProductResponseDto;
+import com.donatech.catalog.exception.ConflictException;
 import com.donatech.catalog.exception.ResourceNotFoundException;
 import com.donatech.catalog.model.Category;
+import com.donatech.catalog.model.KitItem;
 import com.donatech.catalog.model.Prioridad;
 import com.donatech.catalog.model.Product;
 import com.donatech.catalog.model.Unit;
+import com.donatech.catalog.repository.KitItemRepository;
 import com.donatech.catalog.repository.ProductRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,7 @@ import java.util.List;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final KitItemRepository kitItemRepository;
     private final CategoryService categoryService;
     private final UnitService unitService;
     private final ImageStorageService imageStorageService;
@@ -173,9 +177,22 @@ public class ProductService {
         return productRepository.findByPrioridad(prioridad);
     }
 
+    @Transactional
     public ResponseEntity<MessageResponse> deleteProduct(String id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + id));
+
+        List<KitItem> usedIn = kitItemRepository.findByProductId(id);
+        if (!usedIn.isEmpty()) {
+            String kitNames = usedIn.stream()
+                    .map(item -> item.getKit() != null ? item.getKit().getNombre() : "?")
+                    .distinct()
+                    .collect(java.util.stream.Collectors.joining(", "));
+            throw new ConflictException(
+                    "No se puede eliminar: el producto está en uso en el/los kit(s): "
+                            + kitNames + ". Quítalo de esos kits primero.");
+        }
+
         productRepository.delete(product);
         return ResponseEntity.ok(new MessageResponse("Producto eliminado correctamente."));
     }
