@@ -1,12 +1,23 @@
 name: donatech-backend-cloud
 
+# ═══════════════════════════════════════════════════════════════════════════
+# Stack COMPLETO para despliegue en un único Droplet (Ubuntu 24.04, 8GB RAM).
+# Levanta backend + frontend + IA con:
+#   docker compose -f docker-compose-cloud.yml up -d
+#
+# Red interna 'donatech-net': los servicios se comunican por nombre de servicio.
+# Solo api-gateway (8080) y frontend (80) exponen puertos al host.
+# LLM de kit-ia: proveedor cloud (Groq/DeepSeek) vía .env. Sin ollama.
+# kit-ia lee el catálogo por HTTP (db-per-service); no accede a Postgres.
+# ═══════════════════════════════════════════════════════════════════════════
+
 services:
 
   # ─────────────────────────────────────────
-  # Infraestructura Cloud (Bases de Datos Independientes por Microservicio)
+  # Infraestructura (Bases de Datos Independientes por Microservicio)
   # ─────────────────────────────────────────
-  # NOTA: Los volúmenes named mantienen los datos entre reinicios y rebuilds de imagen.
-  # Los scripts db/postgres-*/01-init.sh solo se ejecutan cuando el volumen está vacío.
+  # NOTA: Los volúmenes named mantienen los datos entre reinicios y rebuilds.
+  # Los scripts db/postgres-*/01-init.sh solo se ejecutan con el volumen vacío.
   # ─────────────────────────────────────────
 
   postgres-users:
@@ -17,6 +28,9 @@ services:
     volumes:
       - postgres-users-data:/var/lib/postgresql/data
       - ./db/postgres-users:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    networks:
+      - donatech-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-donatech}"]
       interval: 10s
@@ -31,6 +45,9 @@ services:
     volumes:
       - postgres-catalog-data:/var/lib/postgresql/data
       - ./db/postgres-catalog:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    networks:
+      - donatech-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-donatech}"]
       interval: 10s
@@ -45,6 +62,9 @@ services:
     volumes:
       - postgres-order-data:/var/lib/postgresql/data
       - ./db/postgres-order:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    networks:
+      - donatech-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-donatech}"]
       interval: 10s
@@ -59,6 +79,9 @@ services:
     volumes:
       - postgres-supports-data:/var/lib/postgresql/data
       - ./db/postgres-supports:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    networks:
+      - donatech-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-donatech}"]
       interval: 10s
@@ -73,6 +96,9 @@ services:
     volumes:
       - postgres-shipping-data:/var/lib/postgresql/data
       - ./db/postgres-shipping:/docker-entrypoint-initdb.d:ro
+    restart: unless-stopped
+    networks:
+      - donatech-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-donatech}"]
       interval: 10s
@@ -84,9 +110,9 @@ services:
     container_name: donatech-rabbitmq
     env_file:
       - .env
-    ports:
-      - "5672:5672"
-      - "15672:15672"
+    restart: unless-stopped
+    networks:
+      - donatech-net
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
@@ -102,10 +128,12 @@ services:
       dockerfile: Dockerfile
     container_name: donatech-discovery
     image: donatech/discovery-server:latest
-    ports:
-      - "8761:8761"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-Xmx320m"
+    restart: unless-stopped
+    networks:
+      - donatech-net
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8761/actuator/health || exit 1"]
       interval: 15s
@@ -124,10 +152,12 @@ services:
     image: donatech/auth-service:latest
     env_file:
       - .env
-    ports:
-      - "8084:8084"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-Xmx320m"
+    restart: unless-stopped
+    networks:
+      - donatech-net
     depends_on:
       discovery-server:
         condition: service_healthy
@@ -140,11 +170,13 @@ services:
     image: donatech/users-service:latest
     env_file:
       - .env
-    ports:
-      - "8083:8083"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-Xmx320m"
       DB_URL: jdbc:postgresql://postgres-users:5432/donatech
+    restart: unless-stopped
+    networks:
+      - donatech-net
     depends_on:
       postgres-users:
         condition: service_healthy
@@ -161,11 +193,13 @@ services:
     image: donatech/catalog-service:latest
     env_file:
       - .env
-    ports:
-      - "8081:8081"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-Xmx320m"
       DB_URL: jdbc:postgresql://postgres-catalog:5432/donatech
+    restart: unless-stopped
+    networks:
+      - donatech-net
     depends_on:
       postgres-catalog:
         condition: service_healthy
@@ -182,11 +216,13 @@ services:
     image: donatech/order-service:latest
     env_file:
       - .env
-    ports:
-      - "8082:8082"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-Xmx320m"
       DB_URL: jdbc:postgresql://postgres-order:5432/donatech
+    restart: unless-stopped
+    networks:
+      - donatech-net
     depends_on:
       postgres-order:
         condition: service_healthy
@@ -203,11 +239,13 @@ services:
     image: donatech/supports-service:latest
     env_file:
       - .env
-    ports:
-      - "8085:8085"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-Xmx320m"
       DB_URL: jdbc:postgresql://postgres-supports:5432/donatech
+    restart: unless-stopped
+    networks:
+      - donatech-net
     depends_on:
       postgres-supports:
         condition: service_healthy
@@ -224,10 +262,12 @@ services:
     image: donatech/notification-service:latest
     env_file:
       - .env
-    ports:
-      - "8086:8086"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-Xmx320m"
+    restart: unless-stopped
+    networks:
+      - donatech-net
     depends_on:
       discovery-server:
         condition: service_healthy
@@ -242,11 +282,13 @@ services:
     image: donatech/shipping-service:latest
     env_file:
       - .env
-    ports:
-      - "8087:8087"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      JAVA_TOOL_OPTIONS: "-Xmx320m"
       DB_URL: jdbc:postgresql://postgres-shipping:5432/donatech
+    restart: unless-stopped
+    networks:
+      - donatech-net
     depends_on:
       postgres-shipping:
         condition: service_healthy
@@ -254,6 +296,41 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
+  # ─────────────────────────────────────────
+  # Microservicio IA — Kit Personalizado (LLM cloud, sin BD ni ollama)
+  # ─────────────────────────────────────────
+  kit-ia-service:
+    build:
+      context: ./kit-ia-service
+      dockerfile: Dockerfile
+    container_name: donatech-kit-ia
+    image: donatech/kit-ia-service:latest
+    env_file:
+      - .env
+    environment:
+      # LLM cloud (Groq/DeepSeek): LLM_PROVIDER/LLM_API_KEY/LLM_BASE_URL/LLM_MODEL
+      # se inyectan desde .env. Lectura del catálogo por HTTP (no BD).
+      MS_KITS_URL: http://catalog-service:8081
+      USERS_URL: http://users-service:8083
+      EUREKA_SERVER_URL: http://discovery-server:8761/eureka
+      APP_NAME: kit-ia-service
+      APP_HOST: kit-ia-service
+      APP_PORT: 8001
+    restart: unless-stopped
+    networks:
+      - donatech-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/kit-ia/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      catalog-service:
+        condition: service_started
 
   # ─────────────────────────────────────────
   # API Gateway
@@ -266,15 +343,103 @@ services:
     image: donatech/api-gateway:latest
     env_file:
       - .env
-    ports:
-      - "8080:8080"
+    # Sin ports: el acceso externo entra por Caddy (red interna donatech-net).
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      # IP pública de la EC2 del frontend (para CORS).
-      # Reemplazar en el .env con: FRONTEND_URL=http://IP_FRONTEND
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      JAVA_TOOL_OPTIONS: "-Xmx320m"
+      # Caddy sirve front y /api en el mismo origen (sin CORS). FRONTEND_URL
+      # se usa además para links de soporte en emails (order-service).
+      FRONTEND_URL: ${FRONTEND_URL:-https://donatech.onieto.cl}
+    restart: unless-stopped
+    networks:
+      - donatech-net
     depends_on:
       discovery-server:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────
+  # Frontend (React + nginx) — sirve estáticos y proxea /api al gateway
+  # ─────────────────────────────────────────
+  frontend:
+    build:
+      context: ../Frontend/Donatech-Front
+      dockerfile: Dockerfile
+    container_name: donatech-frontend
+    image: donatech/frontend:latest
+    # Sin ports: Caddy expone el front al exterior (80/443). Interno en donatech-net.
+    environment:
+      # Red interna: nginx proxea /api al gateway por nombre de servicio.
+      BACKEND_URL: http://api-gateway:8080
+    restart: unless-stopped
+    networks:
+      - donatech-net
+    healthcheck:
+      # nginx:alpine no incluye curl; busybox wget sí.
+      # 127.0.0.1 (no localhost): wget resuelve localhost a ::1 y nginx escucha IPv4.
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - api-gateway
+
+  # ─────────────────────────────────────────
+  # Reverse proxy + TLS automático (Let's Encrypt). Único punto de entrada.
+  # Sirve frontend y /api (gateway) en el mismo origen sobre HTTPS.
+  # ─────────────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: donatech-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:-donatech.onieto.cl}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - donatech-net
+    depends_on:
+      - api-gateway
+      - frontend
+
+  # ─────────────────────────────────────────
+  # Backup — pg_dump diario de los 5 Postgres + offsite a DO Spaces
+  # ─────────────────────────────────────────
+  db-backup:
+    build:
+      context: ./db-backup
+      dockerfile: Dockerfile
+    container_name: donatech-db-backup
+    image: donatech/db-backup:latest
+    env_file:
+      - .env
+    environment:
+      # SPACES_* y POSTGRES_USER/PASSWORD vienen de .env
+      BACKUP_TARGETS: "catalog:postgres-catalog,users:postgres-users,order:postgres-order,supports:postgres-supports,shipping:postgres-shipping"
+      S3_PREFIX: cloud
+      BACKUP_CRON: "0 3 * * *"
+      RETENTION_DAYS: "7"
+    volumes:
+      - backup-data:/backups
+    restart: unless-stopped
+    networks:
+      - donatech-net
+    depends_on:
+      postgres-catalog:
+        condition: service_healthy
+      postgres-users:
+        condition: service_healthy
+      postgres-order:
+        condition: service_healthy
+      postgres-supports:
+        condition: service_healthy
+      postgres-shipping:
         condition: service_healthy
 
 volumes:
@@ -283,3 +448,10 @@ volumes:
   postgres-order-data:
   postgres-supports-data:
   postgres-shipping-data:
+  backup-data:
+  caddy-data:
+  caddy-config:
+
+networks:
+  donatech-net:
+    driver: bridge

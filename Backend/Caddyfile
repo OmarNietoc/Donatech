@@ -1,0 +1,24 @@
+# ============================================================================
+# Caddyfile — reverse proxy con TLS automático (Let's Encrypt) para el Droplet.
+# Sirve el frontend y proxea /api al gateway en el MISMO origen (sin CORS).
+# Dominio y email vienen del env del contenedor (docker-compose-cloud.yml).
+# Requiere: A-record del dominio -> IP del Droplet en DNS-only (NO Cloudflare
+# proxied) y puertos 80/443 abiertos para el challenge ACME.
+# ============================================================================
+{
+	email {$ACME_EMAIL}
+}
+
+{$SITE_DOMAIN} {
+	encode gzip
+
+	# API -> API Gateway (incluye /api/kit-ia/*). Same-origin: sin CORS.
+	handle /api/* {
+		reverse_proxy api-gateway:8080
+	}
+
+	# Resto -> frontend (React servido por nginx, SPA + estáticos).
+	handle {
+		reverse_proxy frontend:80
+	}
+}

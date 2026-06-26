@@ -24,5 +24,8 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     @Query("SELECT p FROM Product p WHERE p.stock <= p.stockMinimo")
     List<Product> findLowStockProducts();
 
+    @Query("SELECT p FROM Product p WHERE p.activo = 1 AND p.stock > 0")
+    List<Product> findActiveInStock();
+
     List<Product> findByPrioridad(com.donatech.catalog.model.Prioridad prioridad);
 }

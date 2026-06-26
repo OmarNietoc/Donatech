@@ -74,6 +74,10 @@ Comunicación inter-ms sincrónica via OpenFeign + Resilience4j (circuit breaker
 | supports | 8085 | Tickets de soporte, validación campañas/transferencias | [via gateway](http://localhost:8080/supports/swagger-ui/index.html) |
 | notification | 8086 | Envío de emails (stateless, sin BD) | — sin endpoints REST |
 | shipping | 8087 | Envíos, rutas optimizadas (OSRM), seguimiento | [via gateway](http://localhost:8080/shipping/swagger-ui/index.html) |
+| **kit-ia** | 8001 | Generación de kits personalizados vía chat IA (Python/FastAPI) | [/docs](http://localhost:8001/docs) (FastAPI) |
+| **db-backup** | — | Sidecar de backup (pg_dump + offsite a DO Spaces). Sin endpoints | — |
+
+> `kit-ia` y `db-backup` no son Spring Boot. Ver secciones **Microservicio de IA** y **Backup de base de datos** abajo.
 
 ---
 
@@ -89,6 +93,7 @@ Todas las rutas pasan por `:8080`. Las rutas de Swagger no requieren autenticaci
 | `/api/orders/**`, `/api/donations/**` | order | Sí |
 | `/api/supports/**` | supports | Sí |
 | `/api/shipments/**`, `/api/routes/**` | shipping | Sí |
+| `/api/kit-ia/**` | kit-ia | Sí |
 | `/swagger-ui` | gateway (HTML inline) | No |
 | `/{service}/swagger-ui/**`, `/{service}/v3/api-docs/**` | cada MS | No |
 
@@ -189,11 +194,74 @@ PENDING → ASSIGNED → DISPATCHED → DELIVERED
 
 ---
 
+## Microservicio de IA — Kit Personalizado (`kit-ia`)
+
+Servicio que genera **kits de ayuda personalizados** para una campaña mediante un chat con IA: infiere el contexto de la catástrofe, busca productos relevantes del catálogo por similitud semántica y arma un kit que crea en `catalog`.
+
+### Tecnologías
+| Tecnología | Uso |
+|---|---|
+| Python 3.11 + FastAPI | API REST asíncrona (`/api/kit-ia/**`), puerto 8001 |
+| Uvicorn | Servidor ASGI |
+| sentence-transformers (`paraphrase-multilingual-MiniLM-L12-v2`) | Embeddings de productos para búsqueda semántica |
+| scikit-learn / numpy | Similitud coseno entre contexto y productos |
+| LLM cloud OpenAI-compatible (Groq / DeepSeek) | Conversación e inferencia de necesidades (`LLM_PROVIDER=cloud`) |
+| httpx + tenacity | Cliente HTTP resiliente hacia `catalog` (reintentos) |
+| py-eureka-client | Registro en Eureka como `kit-ia-service` |
+
+### Funcionamiento
+```
+DONANTE/ORG abre chat IA en una campaña
+  → POST /api/kit-ia/sesion/iniciar   (infiere contexto: tipo catástrofe, afectados)
+  → POST /api/kit-ia/sesion/mensaje   (refina necesidades en ≤3 turnos)
+  → POST /api/kit-ia/kit/generar      (búsqueda semántica sobre catálogo + reglas fallback)
+  → POST /api/kit-ia/kit/confirmar    (crea kit en catalog vía HTTP, patrón saga)
+```
+- **Lectura del catálogo por HTTP** (`GET /api/products/active` en catalog) — NO accede a la BD de catalog directamente, respetando **db-per-service**. Si catalog no responde tras 5 reintentos → HTTP 503 (`CatalogoNoDisponibleError`).
+- **Escritura** del kit vía `POST /api/kits/personalized` + vínculo a campaña, con **compensación saga** (borra el kit si falla el vínculo).
+- Embeddings de productos se **precalculan al arrancar** y se cachean en memoria.
+- Health: `GET /api/kit-ia/health`.
+
+---
+
+## Backup de base de datos (`db-backup`)
+
+Sidecar que respalda automáticamente las bases de datos a disco local **y offsite**, cumpliendo la regla **3-2-1** (3 copias, 2 medios, 1 fuera del disco de la BD).
+
+### Tecnologías
+| Tecnología | Uso |
+|---|---|
+| `pg_dump` (postgres:16-alpine) | Dump lógico de cada BD (versión 16 = la de los servidores) |
+| gzip | Compresión de los dumps |
+| rclone | Subida offsite a DigitalOcean Spaces (S3-compatible) |
+| busybox `crond` | Scheduler interno (cron diario) |
+
+### Funcionamiento
+```
+cron diario (BACKUP_CRON, def 03:00)
+  → pg_dump (como superusuario, captura todos los schemas) → gzip
+  → /backups/<prefijo>/<label>-<fecha>.sql.gz     (copia local en volumen)
+  → rclone copy → spaces:<bucket>/<prefijo>/       (copia offsite)
+  → poda dumps > RETENTION_DAYS (def 7): local (find) + remoto (rclone --min-age)
+```
+- **Una sola imagen, dos entornos**, parametrizada por env:
+  - Cloud (`docker-compose-cloud.yml`): dumpea los 5 Postgres → prefijo `cloud/`.
+  - Local (`docker-compose-local.yml`): dumpea el Postgres único multi-schema → prefijo `local/`.
+- Mismo bucket de Spaces para ambos; se distinguen por prefijo.
+- Si `SPACES_BUCKET` está vacío → backup **solo local** (no rompe).
+- **Restaurar**: `docker exec donatech-db-backup restore.sh <host-postgres> <archivo.sql.gz> [db]` (baja de Spaces si no está local).
+
+Variables (`.env`): `SPACES_KEY`, `SPACES_SECRET`, `SPACES_BUCKET`, `SPACES_ENDPOINT` (región del bucket). Reutiliza `POSTGRES_USER` / `POSTGRES_PASSWORD`.
+
+---
+
 ## Prerequisitos
 
 - Java 21
 - Maven 3.9+
 - Docker + Docker Compose
+- (kit-ia) API key de un proveedor LLM cloud OpenAI-compatible (Groq/DeepSeek)
+- (db-backup, opcional) bucket + API key de DigitalOcean Spaces para offsite
 
 ---
 
@@ -300,9 +368,11 @@ Donatech/
 ├── shipping/             # Envíos y rutas de entrega (OSRM)
 ├── supports/             # Tickets de soporte y validaciones
 ├── users/                # Perfiles, beneficiarios, zonas catástrofe
+├── kit-ia-service/       # IA: kits personalizados (Python/FastAPI)
+├── db-backup/            # Sidecar de backup (pg_dump + rclone → Spaces)
+├── db/                   # Init scripts por Postgres (cloud): crea schema + usuario
 ├── docker-compose-local.yml
 ├── docker-compose-cloud.yml
-├── init-dbs.sql          # Script de inicialización de bases de datos
 ├── .env.example          # Plantilla de variables de entorno
 ```
 

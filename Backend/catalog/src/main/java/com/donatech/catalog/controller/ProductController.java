@@ -45,6 +45,12 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductById(id));
     }
 
+    @Operation(summary = "Feed de productos activos con stock (consumo interno kit-ia)")
+    @GetMapping("/active")
+    public ResponseEntity<List<ProductResponseDto>> getActiveProducts() {
+        return ResponseEntity.ok(productService.getActiveInStock());
+    }
+
     @Operation(summary = "Imagen de producto")
     @GetMapping("/{id}/image")
     public ResponseEntity<byte[]> getImage(@PathVariable String id) {

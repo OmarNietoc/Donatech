@@ -57,6 +57,15 @@ public class ProductService {
                 .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado: " + id)));
     }
 
+    /**
+     * Feed interno de productos activos con stock disponible (sin paginar).
+     * Consumido por kit-ia-service vía HTTP para precalcular embeddings y
+     * recalcular precios, evitando el acceso directo a la BD (db-per-service).
+     */
+    public List<ProductResponseDto> getActiveInStock() {
+        return productRepository.findActiveInStock().stream().map(this::toDto).toList();
+    }
+
     private ProductResponseDto toDto(Product p) {
         return ProductResponseDto.builder()
                 .id(p.getId())

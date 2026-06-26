@@ -2,10 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Dependencias del sistema para psycopg2, sentence-transformers y healthcheck (curl)
+# Dependencias del sistema para sentence-transformers y healthcheck (curl)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 

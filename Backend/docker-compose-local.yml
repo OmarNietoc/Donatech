@@ -292,9 +292,34 @@ services:
       discovery-server:
         condition: service_healthy
 
+  # ─────────────────────────────────────────
+  # Backup — pg_dump diario del Postgres local (multi-schema) + offsite a DO Spaces
+  # ─────────────────────────────────────────
+  db-backup:
+    build:
+      context: ./db-backup
+      dockerfile: Dockerfile
+    container_name: donatech-db-backup
+    image: donatech/db-backup:latest
+    env_file:
+      - .env
+    environment:
+      # 1 Postgres con todos los schemas -> 1 dump captura todo
+      BACKUP_TARGETS: "donatech:postgres"
+      S3_PREFIX: local
+      BACKUP_CRON: "0 3 * * *"
+      RETENTION_DAYS: "7"
+    volumes:
+      - backup-data:/backups
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres-data-local:
   catalog-images-data:
   order-images-data:
   users-images-data:
   ollama-data:
+  backup-data:

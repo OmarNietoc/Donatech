@@ -5,7 +5,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config.settings import settings
-from app.core import db
 from app.core.embeddings import embeddings_engine
 from app.core.eureka import desregistrar_de_eureka, registrar_en_eureka
 from app.core.session_store import session_store
@@ -32,7 +31,6 @@ async def _job_limpieza_sesiones() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    db.init_pool()
     embeddings_engine.load()
     try:
         from app.services.productos import product_cache
@@ -47,7 +45,6 @@ async def lifespan(app: FastAPI):
 
     tarea_limpieza.cancel()
     await desregistrar_de_eureka()
-    db.close_pool()
 
 
 app = FastAPI(

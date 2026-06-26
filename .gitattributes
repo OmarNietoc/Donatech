@@ -1,0 +1,10 @@
+# Forzar LF en scripts que corren en contenedores Linux.
+# Evita errores "/bin/bash^M: bad interpreter" cuando se editan en Windows (CRLF).
+*.sh        text eol=lf
+mvnw        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+Dockerfile  text eol=lf
+
+# Normalizar texto por defecto, dejar que Git decida.
+* text=auto

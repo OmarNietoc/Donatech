@@ -21,15 +21,9 @@ class Settings(BaseSettings):
     # ─── Embeddings ───────────────────────────────────────────────────────
     embeddings_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
 
-    # ─── Base de datos (solo lectura, schema catalog) ─────────────────────
-    db_host: str = "localhost"
-    db_port: int = 5432
-    db_name: str = "donatech"
-    db_user: str = "catalog_user"
-    db_password: str = ""
-    db_schema: str = "catalog"
-
     # ─── Spring ms catalog ────────────────────────────────────────────────
+    # Lectura del catálogo (productos) y escritura (crear kits) por HTTP.
+    # kit-ia NO accede a la BD de catalog directamente (db-per-service).
     ms_kits_url: str = "http://localhost:8081"
 
     # ─── Spring ms users (nombre real del afectado) ───────────────────────

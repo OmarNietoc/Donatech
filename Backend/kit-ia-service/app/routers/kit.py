@@ -5,9 +5,9 @@ from fastapi import APIRouter, HTTPException, Request
 from app.clients.spring_client import spring_client
 from app.clients.users_client import obtener_nombre
 from app.config.settings import settings
-from app.core import db
 from app.core.embeddings import embeddings_engine
 from app.core.session_store import session_store
+from app.services.productos import product_cache
 from app.schemas.kit_schemas import (
     ConfirmarRequest,
     ConfirmarResponse,
@@ -134,22 +134,25 @@ async def cerrar_sesion(sesion_id: str):
 
 @router.get("/health")
 async def health():
-    db_ok = db.ping()
     return {
-        "status": "UP" if db_ok else "DEGRADED",
-        "db": "UP" if db_ok else "DOWN",
+        "status": "UP" if embeddings_engine.cargado else "DEGRADED",
         "embeddings": "UP" if embeddings_engine.cargado else "DOWN",
         "llm_provider": settings.llm_provider,
     }
 
 
 def _precios_por_id(ids: list[str]) -> dict[str, int]:
+    """Precios autoritativos desde el catálogo cacheado (activos con stock).
+
+    Misma fuente que el feed /api/products/active; no se confía en el cliente.
+    """
     if not ids:
         return {}
-    placeholders = ",".join(["%s"] * len(ids))
-    rows = db.fetch_all(
-        f"SELECT id, precio FROM products "
-        f"WHERE activo = 1 AND stock > 0 AND id IN ({placeholders})",
-        tuple(ids),
-    )
-    return {r["id"]: r["precio"] for r in rows}
+    if not product_cache.products:
+        product_cache.precompute()
+    quiero = set(ids)
+    return {
+        p["id"]: p["precio"]
+        for p in product_cache.products
+        if p["id"] in quiero and p.get("precio") is not None
+    }

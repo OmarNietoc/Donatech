@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from app.config.settings import settings
+from app.exceptions.errors import CatalogoNoDisponibleError
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,13 @@ def registrar_handlers(app: FastAPI) -> None:
             status_code=404,
             content=_payload("SESION_NO_ENCONTRADA",
                              "La sesión no existe o expiró.", str(exc)),
+        )
+
+    @app.exception_handler(CatalogoNoDisponibleError)
+    async def _catalogo(request: Request, exc: CatalogoNoDisponibleError):
+        return JSONResponse(
+            status_code=503,
+            content=_payload("CATALOGO_NO_DISPONIBLE", str(exc), str(exc)),
         )
 
     @app.exception_handler(httpx.TimeoutException)

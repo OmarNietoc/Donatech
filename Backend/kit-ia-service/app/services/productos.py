@@ -1,6 +1,7 @@
 """Consulta del catálogo y filtrado de productos por relevancia semántica.
 
-Solo SELECT sobre el schema catalog. Los embeddings de productos se precalculan
+Los productos se obtienen del ms catalog por HTTP (feed /api/products/active),
+no por acceso directo a la BD (db-per-service). Los embeddings se precalculan
 al arrancar y se cachean en memoria.
 """
 import logging
@@ -8,20 +9,11 @@ import logging
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
+from app.clients.catalog_client import catalog_client
 from app.config.settings import settings
-from app.core import db
 from app.core.embeddings import embeddings_engine
 
 logger = logging.getLogger(__name__)
-
-# Productos activos con stock disponible + nombre de categoría.
-_PRODUCTS_QUERY = """
-    SELECT p.id, p.nombre, p.descripcion, p.precio, p.stock, p.prioridad,
-           COALESCE(c.name, '') AS categoria
-    FROM products p
-    LEFT JOIN categories c ON c.id = p.categoria_id
-    WHERE p.activo = 1 AND p.stock > 0
-"""
 
 # Insumos específicos de curación de heridas (primeros auxilios).
 PRIMEROS_AUXILIOS_KEYWORDS = [
@@ -50,7 +42,7 @@ class ProductCache:
         self.matrix: np.ndarray | None = None
 
     def precompute(self) -> None:
-        rows = db.fetch_all(_PRODUCTS_QUERY)
+        rows = [self._normalizar(r) for r in catalog_client.obtener_productos_activos()]
         self.products = rows
         if not rows:
             logger.warning("No hay productos activos con stock para cachear")
@@ -59,6 +51,19 @@ class ProductCache:
         textos = [self._texto(r) for r in rows]
         self.matrix = embeddings_engine.encode(textos)
         logger.info("Embeddings de %d productos precalculados", len(rows))
+
+    @staticmethod
+    def _normalizar(row: dict) -> dict:
+        """Adapta el JSON de catalog (ProductResponseDto) al shape interno."""
+        return {
+            "id": row.get("id"),
+            "nombre": row.get("nombre") or "",
+            "descripcion": row.get("descripcion") or "",
+            "precio": row.get("precio"),
+            "stock": row.get("stock"),
+            "prioridad": row.get("prioridad"),
+            "categoria": row.get("categoriaNombre") or "",
+        }
 
     @staticmethod
     def _texto(row: dict) -> str:

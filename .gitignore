@@ -54,6 +54,20 @@ logs/
 docker-data/
 pgdata/
 
+# === Python (kit-ia-service) ===
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.venv/
+venv/
+env/
+
 # === Node.js / Frontend ===
 node_modules/
 dist/
